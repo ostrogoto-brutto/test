@@ -556,5 +556,5 @@ jobs:
           prerelease: true
           tag_name: ${{ env.VERSION }}
           files: |
-            ./SignOutput/rustdesk-*.msi
-            ./SignOutput/rustdesk-*.exe
+            ./SignOutput/${{ inputs.filename }}.msi
+            ./SignOutput/${{ inputs.filename }}.exe
