@@ -564,16 +564,19 @@ jobs:
                 mv "$name" /workspace/output/"${{ inputs.filename }}-suse.rpm"
             done
 
-      - name: Upload deb
-        uses: actions/upload-artifact@master
-        if: env.UPLOAD_ARTIFACT == 'true'
-        with:
-          name: rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.deb
-          path: rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.deb
+      # - name: Upload deb
+      #   uses: actions/upload-artifact@master
+      #   if: env.UPLOAD_ARTIFACT == 'true'
+      #   with:
+      #     name: rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.deb
+      #     path: rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.deb
 
 # APPIMAGE
       - name: Rename Binary
         run: |
+          echo ======================================+++++++++++++++++++++++++++++
+          find .
+          echo ======================================+++++++++++++++++++++++++++++
           cp rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.deb appimage/rustdesk.deb
 
       - name: Build appimage package
