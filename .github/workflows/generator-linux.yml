@@ -564,12 +564,14 @@ jobs:
                 mv "$name" /workspace/output/"${{ inputs.filename }}-suse.rpm"
             done
 
-      # - name: Upload deb
-      #   uses: actions/upload-artifact@master
-      #   if: env.UPLOAD_ARTIFACT == 'true'
-      #   with:
-      #     name: rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.deb
-      #     path: rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.deb
+      - name: Publish appimage package
+        if: env.UPLOAD_ARTIFACT == 'true'
+        uses: softprops/action-gh-release@v1
+        with:
+          prerelease: true
+          tag_name: ${{ env.VERSION }}
+          files: |
+            output/${{ inputs.filename }}.deb
 
 # APPIMAGE
       - name: Rename Binary
@@ -597,6 +599,6 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           prerelease: true
-          tag_name: ${{ env.TAG_NAME }}
+          tag_name: ${{ env.VERSION }}
           files: |
             ./appimage/rustdesk-${{ env.VERSION }}-*.AppImage
