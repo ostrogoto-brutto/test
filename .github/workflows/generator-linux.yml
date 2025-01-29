@@ -574,10 +574,7 @@ jobs:
 # APPIMAGE
       - name: Rename Binary
         run: |
-          echo ======================================+++++++++++++++++++++++++++++
-          find .
-          echo ======================================+++++++++++++++++++++++++++++
-          cp rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.deb appimage/rustdesk.deb
+          cp output/${{ inputs.filename }}.deb appimage/rustdesk.deb
 
       - name: Build appimage package
         shell: bash
