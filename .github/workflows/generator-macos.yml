@@ -650,6 +650,11 @@ jobs:
 
       - name: Create DMG
         run: |
+          echo +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+          pwd
+          echo +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+          find /Users/runner/work
+          echo +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
           cd /Users/runner/work/rdgen/rdgen/flutter/build/macos/Build/Products/Release
           # Print directory contents for debugging
           echo "Directory contents:"
