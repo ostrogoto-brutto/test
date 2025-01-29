@@ -5,53 +5,66 @@ on:
     inputs:
       server:
         description: 'Rendezvous Server'
-        required: true
-        default: ''
+        #required: true
+        default: "aiuto.mynet.it"
         type: string
       key:
         description: 'Public Key'
-        required: true
-        default: ''
+        #required: true
+        default: "Qy3s10jVjXij5rmbRArE4bAyRCrlDAx8WX+UdIwMiCw="
         type: string
       apiServer:
         description: 'API Server'
-        required: true
-        default: ''
+        #required: true
+        default: "aiuto.mynet.it"
         type: string
       custom:
         description: "Custom JSON"
-        required: true
-        default: ''
+        #required: true
+        default: "eyJjb25uLXR5cGUiOiAiYm90aCIsICJhcHAtbmFtZSI6ICJNeU5ldCBBc3Npc3RlbnphIFRlY25pY2EiLCAib3ZlcnJpZGUtc2V0dGluZ3MiOiB7fSwgImRlZmF1bHQtc2V0dGluZ3MiOiB7ImFjY2Vzcy1tb2RlIjogImN1c3RvbSIsICJlbmFibGUta2V5Ym9hcmQiOiAiWSIsICJlbmFibGUtY2xpcGJvYXJkIjogIlkiLCAiZW5hYmxlLWZpbGUtdHJhbnNmZXIiOiAiWSIsICJlbmFibGUtYXVkaW8iOiAiWSIsICJlbmFibGUtdHVubmVsIjogIlkiLCAiZW5hYmxlLXJlbW90ZS1yZXN0YXJ0IjogIlkiLCAiZW5hYmxlLXJlY29yZC1zZXNzaW9uIjogIlkiLCAiZW5hYmxlLWJsb2NrLWlucHV0IjogIlkiLCAiYWxsb3ctcmVtb3RlLWNvbmZpZy1tb2RpZmljYXRpb24iOiAiTiJ9LCAiYXBwcm92ZS1tb2RlIjogInBhc3N3b3JkLWNsaWNrIiwgImVuYWJsZS1sYW4tZGlzY292ZXJ5IjogIlkiLCAiZGlyZWN0LXNlcnZlciI6ICJOIiwgImFsbG93LWF1dG8tZGlzY29ubmVjdCI6ICJOIiwgImFsbG93LXJlbW92ZS13YWxscGFwZXIiOiAiWSJ9"
         type: string
-      uuid:
-        description: "uuid of request"
-        required: true
-        default: ''
-        type: string
+      # uuid:
+      #   description: "uuid of request"
+      #   required: true
+      #   default: ''
+      #   type: string
       iconlink:
         description: "icon link"
-        required: false
+        #required: false
         default: 'false'
         type: string
       logolink:
         description: "logo link"
-        required: false
+        #required: false
         default: 'false'
         type: string
       appname:
         description: "app name"
-        required: true
-        default: 'rustdesk'
+        #required: true
+        default: 'MyNet Assistenza Tecnica'
         type: string
       filename:
         description: "Filename"
-        required: true
-        default: 'rustdesk'
+        #required: true
+        default: 'MyNetAssistenzaTecnica'
         type: string
       extras:
         description: "extra inputs in json"
-        required: true
-        default: '{}'
+        #required: true
+        default: >-
+          {
+            "genurl": "",
+            "runasadmin": "false",
+            "urlLink": "https://aiuto.mynet.it",
+            "delayFix": "true",
+            "version": "1.3.7",
+            "rdgen": "true",
+            "cycleMonitor": "false",
+            "xOffline": "true",
+            "hidecm": "false",
+            "statussort": "true",
+            "removeNewVersionNotif": "true"
+          }
         type: string
 
 env:
@@ -135,14 +148,6 @@ jobs:
         run: |
           echo "STATUS_URL=${{ inputs.apiServer }}/api/updategh" >> $GITHUB_ENV
 
-      - name: Report Status
-        uses: fjogeleit/http-request-action@v1
-        with:
-          url: ${{ env.STATUS_URL }}
-          method: 'POST'
-          customHeaders: '{"Content-Type": "application/json"}'
-          data: '{"uuid": "${{ inputs.uuid }}", "status": "5% complete"}'
-
       - name: Maximize build space
         if: ${{ matrix.job.arch == 'x86_64' }}
         run: |
@@ -200,14 +205,6 @@ jobs:
         run: |
           # only build cdylib
           sed -i  "s/\[\"cdylib\", \"staticlib\", \"rlib\"\]/\[\"cdylib\"\]/g" Cargo.toml
-
-      - name: Report Status
-        uses: fjogeleit/http-request-action@v1
-        with:
-          url: ${{ env.STATUS_URL }}
-          method: 'POST'
-          customHeaders: '{"Content-Type": "application/json"}'
-          data: '{"uuid": "${{ inputs.uuid }}", "status": "15% complete"}'
 
       - name: Restore bridge files
         if: matrix.job.arch == 'x86_64' || env.UPLOAD_ARTIFACT == 'true'
@@ -375,14 +372,6 @@ jobs:
       #     #mv ./rustdesk/data/flutter_assets/assets/icon.svg ./rustdesk/data/flutter_assets/assets/icon.svg.bak
       #     convert ./res/icon.png ./rustdesk/data/flutter_assets/assets/icon.svg
       #     convert ./res/icon.png ./rustdesk/data/flutter_assets/assets/scalable.svg
-
-      - name: Report Status
-        uses: fjogeleit/http-request-action@v1
-        with:
-          url: ${{ env.STATUS_URL }}
-          method: 'POST'
-          customHeaders: '{"Content-Type": "application/json"}'
-          data: '{"uuid": "${{ inputs.uuid }}", "status": "65% complete"}'
 
       - uses: rustdesk-org/run-on-arch-action@amd64-support
         name: Build rustdesk
@@ -575,71 +564,9 @@ jobs:
                 mv "$name" /workspace/output/"${{ inputs.filename }}-suse.rpm"
             done
 
-      # - name: Publish debian/rpm package
-      #   if: env.UPLOAD_ARTIFACT == 'true'
-      #   uses: softprops/action-gh-release@v1
-      #   with:
-      #     prerelease: true
-      #     tag_name: ${{ env.TAG_NAME }}
-      #     files: |
-      #       rustdesk-*.deb
-      #       rustdesk-*.rpm
-
-      # - name: Upload to FTP
-      #   if: ${{ fromJson(inputs.extras).rdgen == 'true' }}
-      #   uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-      #   with:
-      #     server: ${{ secrets.GEN_FTP_SERVER }}
-      #     username: ${{ secrets.GEN_FTP_USER }}
-      #     password: ${{ secrets.GEN_FTP_PASSWORD }}
-      #     local-dir: output/
-      #     server-dir: /root/rdgen/exe/${{ env.UUIDFOLDER }}/
-
-      - name: send file to rdgen server
-        if: ${{ fromJson(inputs.extras).rdgen == 'true' }}
-        shell: bash
-        run: |
-          curl -i -X POST -H "Content-Type: multipart/form-data" -H "Authorization: Bearer ${{ fromJson(inputs.extras).token }}" -F "file=@./output/${{ inputs.filename }}.deb" -F "uuid=${{ inputs.uuid }}" ${{ secrets.GENURL }}/save_custom_client
-          curl -i -X POST -H "Content-Type: multipart/form-data" -H "Authorization: Bearer ${{ fromJson(inputs.extras).token }}" -F "file=@./output/${{ inputs.filename }}.rpm" -F "uuid=${{ inputs.uuid }}" ${{ secrets.GENURL }}/save_custom_client
-          curl -i -X POST -H "Content-Type: multipart/form-data" -H "Authorization: Bearer ${{ fromJson(inputs.extras).token }}" -F "file=@./output/${{ inputs.filename }}-suse.rpm" -F "uuid=${{ inputs.uuid }}" ${{ secrets.GENURL }}/save_custom_client
-
-      - name: send file to api server
-        if: ${{ fromJson(inputs.extras).rdgen == 'false' }}
-        shell: bash
-        run: |
-          curl -i -X POST -H "Content-Type: multipart/form-data" -H "Authorization: Bearer ${{ fromJson(inputs.extras).token }}" -F "file=@./output/${{ inputs.filename }}.deb" ${{ inputs.apiServer }}/api/save_custom_client
-          curl -i -X POST -H "Content-Type: multipart/form-data" -H "Authorization: Bearer ${{ fromJson(inputs.extras).token }}" -F "file=@./output/${{ inputs.filename }}.rpm" ${{ inputs.apiServer }}/api/save_custom_client
-          curl -i -X POST -H "Content-Type: multipart/form-data" -H "Authorization: Bearer ${{ fromJson(inputs.extras).token }}" -F "file=@./output/${{ inputs.filename }}-suse.rpm" ${{ inputs.apiServer }}/api/save_custom_client
-
       - name: Upload deb
         uses: actions/upload-artifact@master
         if: env.UPLOAD_ARTIFACT == 'true'
         with:
           name: rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.deb
           path: rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.deb
-
-      - name: Report Status
-        uses: fjogeleit/http-request-action@v1
-        with:
-          url: ${{ env.STATUS_URL }}
-          method: 'POST'
-          customHeaders: '{"Content-Type": "application/json"}'
-          data: '{"uuid": "${{ inputs.uuid }}", "status": "Success"}'
-
-      - name: failed
-        if: failure()
-        uses: fjogeleit/http-request-action@v1
-        with:
-          url: ${{ env.STATUS_URL }}
-          method: 'POST'
-          customHeaders: '{"Content-Type": "application/json"}'
-          data: '{"uuid": "${{ inputs.uuid }}", "status": "Generation failed, try again"}'
-
-      - name: failed
-        if: cancelled()
-        uses: fjogeleit/http-request-action@v1
-        with:
-          url: ${{ env.STATUS_URL }}
-          method: 'POST'
-          customHeaders: '{"Content-Type": "application/json"}'
-          data: '{"uuid": "${{ inputs.uuid }}", "status": "Generation cancelled, try again"}'

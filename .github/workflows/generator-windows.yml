@@ -51,7 +51,6 @@ on:
       extras:
         description: "extra inputs in json"
         #required: true
-        #default: '{"genurl": "", "runasadmin": "false", "urlLink": "https://aiuto.mynet.it", "delayFix": "true", "version": "1.3.7", "rdgen": "true", "cycleMonitor": "false", "xOffline": "true", "hidecm": "false", "statussort": "true"}'
         default: >-
           {
             "genurl": "",
@@ -63,7 +62,8 @@ on:
             "cycleMonitor": "false",
             "xOffline": "true",
             "hidecm": "false",
-            "statussort": "true"
+            "statussort": "true",
+            "removeNewVersionNotif": "true"
           }
         type: string
 
