@@ -621,14 +621,14 @@ jobs:
           mv ./SignOutput/rustdesk.msi "./SignOutput/${{ inputs.filename }}.msi" || echo "rustdesk"
 
       - name: send file to rdgen server
-        if: ${{ fromJson(inputs.extras).rdgen == 'true' }} && ${{ !inputs.normal_pipeline }}
+        if: ${{ fromJson(inputs.extras).rdgen == 'true' && !inputs.normal_pipeline }}
         shell: bash
         run: |
           curl -i -X POST -H "Content-Type: multipart/form-data" -H "Authorization: Bearer ${{ fromJson(inputs.extras).token }}" -F "file=@./SignOutput/${{ inputs.filename }}.exe" -F "uuid=${{ inputs.uuid }}" ${{ secrets.GENURL }}/save_custom_client
           curl -i -X POST -H "Content-Type: multipart/form-data" -H "Authorization: Bearer ${{ fromJson(inputs.extras).token }}" -F "file=@./SignOutput/${{ inputs.filename }}.msi" -F "uuid=${{ inputs.uuid }}" ${{ secrets.GENURL }}/save_custom_client || true
 
       - name: send file to api server
-        if: ${{ fromJson(inputs.extras).rdgen == 'false' }} && ${{ !inputs.normal_pipeline }}
+        if: ${{ fromJson(inputs.extras).rdgen == 'false' && !inputs.normal_pipeline }}
         shell: bash
         run: |
           curl -i -X POST -H "Content-Type: multipart/form-data" -H "Authorization: Bearer ${{ fromJson(inputs.extras).token }}" -F "file=@./SignOutput/${{ inputs.filename }}.exe" ${{ inputs.apiServer }}/api/save_custom_client
@@ -654,7 +654,7 @@ jobs:
             ./SignOutput/${{ inputs.filename }}.exe
 
       - name: failed
-        if: failure() && ${{ !inputs.normal_pipeline }}
+        if: failure() && !inputs.normal_pipeline
         uses: fjogeleit/http-request-action@v1
         with:
           url: ${{ env.STATUS_URL }}
@@ -663,7 +663,7 @@ jobs:
           data: '{"uuid": "${{ inputs.uuid }}", "status": "Generation failed, try again"}'
 
       - name: failed
-        if: cancelled() && ${{ !inputs.normal_pipeline }}
+        if: cancelled() && !inputs.normal_pipeline
         uses: fjogeleit/http-request-action@v1
         with:
           url: ${{ env.STATUS_URL }}
