@@ -5,22 +5,22 @@ on:
     inputs:
       server:
         description: 'Rendezvous Server'
-        #required: true
+        required: true
         default: "aiuto.mynet.it"
         type: string
       key:
         description: 'Public Key'
-        #required: true
+        required: true
         default: "Qy3s10jVjXij5rmbRArE4bAyRCrlDAx8WX+UdIwMiCw="
         type: string
       apiServer:
         description: 'API Server'
-        #required: true
+        required: true
         default: "aiuto.mynet.it"
         type: string
       custom:
         description: "Custom JSON"
-        #required: true
+        required: true
         default: "eyJjb25uLXR5cGUiOiAiYm90aCIsICJhcHAtbmFtZSI6ICJNeU5ldCBBc3Npc3RlbnphIFRlY25pY2EiLCAib3ZlcnJpZGUtc2V0dGluZ3MiOiB7fSwgImRlZmF1bHQtc2V0dGluZ3MiOiB7ImFjY2Vzcy1tb2RlIjogImN1c3RvbSIsICJlbmFibGUta2V5Ym9hcmQiOiAiWSIsICJlbmFibGUtY2xpcGJvYXJkIjogIlkiLCAiZW5hYmxlLWZpbGUtdHJhbnNmZXIiOiAiWSIsICJlbmFibGUtYXVkaW8iOiAiWSIsICJlbmFibGUtdHVubmVsIjogIlkiLCAiZW5hYmxlLXJlbW90ZS1yZXN0YXJ0IjogIlkiLCAiZW5hYmxlLXJlY29yZC1zZXNzaW9uIjogIlkiLCAiZW5hYmxlLWJsb2NrLWlucHV0IjogIlkiLCAiYWxsb3ctcmVtb3RlLWNvbmZpZy1tb2RpZmljYXRpb24iOiAiTiJ9LCAiYXBwcm92ZS1tb2RlIjogInBhc3N3b3JkLWNsaWNrIiwgImVuYWJsZS1sYW4tZGlzY292ZXJ5IjogIlkiLCAiZGlyZWN0LXNlcnZlciI6ICJOIiwgImFsbG93LWF1dG8tZGlzY29ubmVjdCI6ICJOIiwgImFsbG93LXJlbW92ZS13YWxscGFwZXIiOiAiWSJ9"
         type: string
       # uuid:
@@ -30,27 +30,27 @@ on:
       #   type: string
       iconlink:
         description: "icon link"
-        #required: false
+        required: false
         default: 'false'
         type: string
       logolink:
         description: "logo link"
-        #required: false
+        required: false
         default: 'false'
         type: string
       appname:
         description: "app name"
-        #required: true
+        required: true
         default: 'MyNet Assistenza Tecnica'
         type: string
       filename:
         description: "Filename"
-        #required: true
+        required: true
         default: 'MyNetAssistenzaTecnica'
         type: string
       extras:
         description: "extra inputs in json"
-        #required: true
+        required: true
         default: >-
           {
             "genurl": "",
@@ -66,6 +66,11 @@ on:
             "removeNewVersionNotif": "true"
           }
         type: string
+      normal_pipeline:
+        description: "Is this running with RDGen or in a normal pipeline?"
+        required: true
+        default: true
+        type: boolean
 
 
 env:
@@ -125,15 +130,18 @@ jobs:
       fail-fast: false
       matrix:
         job:
-          # - { target: i686-pc-windows-msvc        , os: windows-2022                  }
-          # - { target: x86_64-pc-windows-gnu       , os: windows-2022                  }
           - {
               target: x86_64-pc-windows-msvc,
               os: windows-2022,
               arch: x86_64,
               vcpkg-triplet: x64-windows-static,
             }
-          # - { target: aarch64-pc-windows-msvc, os: windows-2022, arch: aarch64 }
+          # - {
+          #     target: aarch64-pc-windows-msvc,
+          #     os: windows-2022,
+          #     arch: aarch64,
+          #     vcpkg-triplet: arm64-windows-static
+          # }
     steps:
       - name: Export GitHub Actions cache environment variables
         uses: actions/github-script@v6
@@ -143,14 +151,23 @@ jobs:
             core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
       
       - name: Set rdgen value
-        if: ${{ fromJson(inputs.extras).rdgen == 'true' }}
+        if: ${{ fromJson(inputs.extras).rdgen == 'true' }} && ${{ !inputs.normal_pipeline }}
         run: |
           echo "STATUS_URL=${{ secrets.GENURL }}/updategh" >> $env:GITHUB_ENV
 
       - name: Set rdgen value
-        if: ${{ fromJson(inputs.extras).rdgen == 'false' }}
+        if: ${{ fromJson(inputs.extras).rdgen == 'false' }} && ${{ !inputs.normal_pipeline }}
         run: |
           echo "STATUS_URL=${{ inputs.apiServer }}/api/updategh" >> $env:GITHUB_ENV
+
+      - name: Report Status
+        uses: fjogeleit/http-request-action@v1
+        if: ${{ !inputs.normal_pipeline }}
+        with:
+          url: ${{ env.STATUS_URL }}
+          method: 'POST'
+          customHeaders: '{"Content-Type": "application/json"}'
+          data: '{"uuid": "${{ inputs.uuid }}", "status": "5% complete"}'
 
       - name: Checkout source code
         if: ${{ env.VERSION != 'master' }}
@@ -224,27 +241,25 @@ jobs:
           # ./flutter/pubspec.yaml
           sed -i '/intl:/a \ \ archive: ^3.6.1' ./flutter/pubspec.yaml
 
-
       - name: Install LLVM and Clang
         uses: KyleMayes/install-llvm-action@v1
         with:
           version: ${{ env.LLVM_VERSION }}
+
+      - name: Report Status
+        uses: fjogeleit/http-request-action@v1
+        if: ${{ !inputs.normal_pipeline }}
+        with:
+          url: ${{ env.STATUS_URL }}
+          method: 'POST'
+          customHeaders: '{"Content-Type": "application/json"}'
+          data: '{"uuid": "${{ inputs.uuid }}", "status": "10% complete"}'
 
       - name: Install flutter
         uses: subosito/flutter-action@v2.12.0 #https://github.com/subosito/flutter-action/issues/277
         with:
           channel: "stable"
           flutter-version: ${{ env.FLUTTER_VERSION }}
-
-      # https://github.com/flutter/flutter/issues/155685
-      - name: Replace engine with rustdesk custom flutter engine
-        if: false
-        run: |
-          flutter doctor -v
-          flutter precache --windows
-          Invoke-WebRequest -Uri https://github.com/rustdesk/engine/releases/download/main/windows-x64-release.zip -OutFile windows-x64-release.zip
-          Expand-Archive -Path windows-x64-release.zip -DestinationPath windows-x64-release
-          mv -Force windows-x64-release/*  C:/hostedtoolcache/windows/flutter/stable-${{ env.FLUTTER_VERSION }}-x64/bin/cache/artifacts/engine/windows-x64-release/
 
       - name: Patch flutter
         continue-on-error: true
@@ -261,10 +276,28 @@ jobs:
           targets: ${{ matrix.job.target }}
           components: "rustfmt"
 
+      - name: Report Status
+        uses: fjogeleit/http-request-action@v1
+        if: ${{ !inputs.normal_pipeline }}
+        with:
+          url: ${{ env.STATUS_URL }}
+          method: 'POST'
+          customHeaders: '{"Content-Type": "application/json"}'
+          data: '{"uuid": "${{ inputs.uuid }}", "status": "15% complete"}'
+
       - uses: Swatinem/rust-cache@v2
         with:
           prefix-key: ${{ matrix.job.os }}
         
+      - name: Report Status
+        uses: fjogeleit/http-request-action@v1
+        if: ${{ !inputs.normal_pipeline }}
+        with:
+          url: ${{ env.STATUS_URL }}
+          method: 'POST'
+          customHeaders: '{"Content-Type": "application/json"}'
+          data: '{"uuid": "${{ inputs.uuid }}", "status": "20% complete"}'
+
       - name: Setup vcpkg with Github Actions binary cache
         uses: lukka/run-vcpkg@v11
         with:
@@ -318,7 +351,6 @@ jobs:
           magick ./res/icon.png -resize 128x128 ./res/128x128.png
           magick ./res/128x128.png -resize 200% ./res/128x128@2x.png
 
-
       - name: ui.rs icon
         if: ${{ inputs.iconlink != 'false' }}
         continue-on-error: true
@@ -371,7 +403,6 @@ jobs:
           wget https://raw.githubusercontent.com/bryangerlach/rdgen/refs/heads/master/.github/patches/removeNewVersionNotif.diff
           git apply removeNewVersionNotif.diff
 
-
       - name: run as admin
         continue-on-error: true
         if: ${{ fromJson(inputs.extras).runasadmin == 'true' }}
@@ -379,6 +410,15 @@ jobs:
         run: |
           echo "SET_TARGET_PROPERTIES(\${BINARY_NAME} PROPERTIES LINK_FLAGS    \"/MANIFESTUAC:\\\"level='requireAdministrator' uiAccess='false'\\\" /SUBSYSTEM:WINDOWS\")" >> ./flutter/windows/runner/CMakeLists.txt
           sed -i '/administrator/d' res/manifest.xml
+
+      - name: Report Status
+        uses: fjogeleit/http-request-action@v1
+        if: ${{ !inputs.normal_pipeline }}
+        with:
+          url: ${{ env.STATUS_URL }}
+          method: 'POST'
+          customHeaders: '{"Content-Type": "application/json"}'
+          data: '{"uuid": "${{ inputs.uuid }}", "status": "25% complete"}'
 
       - name: replace flutter icons
         if: ${{ inputs.iconlink != 'false' }}
@@ -389,6 +429,15 @@ jobs:
           flutter pub get
           flutter pub run flutter_launcher_icons
           cd ..
+
+      - name: Report Status
+        uses: fjogeleit/http-request-action@v1
+        if: ${{ !inputs.normal_pipeline }}
+        with:
+          url: ${{ env.STATUS_URL }}
+          method: 'POST'
+          customHeaders: '{"Content-Type": "application/json"}'
+          data: '{"uuid": "${{ inputs.uuid }}", "status": "50% complete, this step takes about 5 minutes, be patient."}'
 
       - name: Build rustdesk
         run: |
@@ -412,7 +461,6 @@ jobs:
         continue-on-error: true
         run: |
           Invoke-WebRequest -Uri ${{ fromJson(inputs.logolink).url }}/get_png?filename=${{ fromJson(inputs.logolink).file }}"&"uuid=${{ fromJson(inputs.logolink).uuid }} -OutFile ./rustdesk/data/flutter_assets/assets/logo.png
-
 
       - name: find Runner.res
         # Windows: find Runner.res (compiled from ./flutter/windows/runner/Runner.rc), copy to ./Runner.res
@@ -451,6 +499,15 @@ jobs:
       #     pip3 install requests argparse
       #     BASE_URL=${{ secrets.SIGN_BASE_URL }} SECRET_KEY=${{ secrets.SIGN_SECRET_KEY }} python3 res/job.py sign_files ./rustdesk/
 
+      - name: Report Status
+        uses: fjogeleit/http-request-action@v1
+        if: ${{ !inputs.normal_pipeline }}
+        with:
+          url: ${{ env.STATUS_URL }}
+          method: 'POST'
+          customHeaders: '{"Content-Type": "application/json"}'
+          data: '{"uuid": "${{ inputs.uuid }}", "status": "70% complete, this step takes about 5 minutes, be patient."}'
+      
       - name: zip dlls
         continue-on-error: true
         shell: pwsh
@@ -471,13 +528,11 @@ jobs:
         shell: pwsh
         run: |
           Expand-Archive -Path ./rustdesk/signed_files.zip -DestinationPath ./rustdek/ -Force
-          
 
       - name: Create custom.txt file
         shell: bash
         run: |
           echo -n "${{ env.CUSTOM }}" | cat > ./rustdesk/custom.txt
-        
 
       - name: Build self-extracted executable
         shell: bash
@@ -499,10 +554,8 @@ jobs:
         continue-on-error: true
         if: env.UPLOAD_ARTIFACT == 'true'
         run: |
-          if [[ "${{ inputs.appname }}" != "rustdesk" ]]; then
-            $myappname = "${{ inputs.appname }}" -replace '\s','_'
-            cp "rustdesk/${{ inputs.appname }}.exe" "rustdesk/${myappname}.exe"
-          fi
+          $myappname = "${{ inputs.appname }}" -replace '\s','_'
+          cp "rustdesk/${{ inputs.appname }}.exe" "rustdesk/${myappname}.exe" -ErrorAction SilentlyContinue
           pushd ./res/msi
           python preprocess.py --app-name "$myappname" --arp -d ../../rustdesk
           nuget restore msi.sln
@@ -516,6 +569,15 @@ jobs:
       #   shell: bash
       #   run: |
       #     BASE_URL=${{ secrets.SIGN_BASE_URL }} SECRET_KEY=${{ secrets.SIGN_SECRET_KEY }} python3 res/job.py sign_files ./SignOutput
+
+      - name: Report Status
+        uses: fjogeleit/http-request-action@v1
+        if: ${{ !inputs.normal_pipeline }}
+        with:
+          url: ${{ env.STATUS_URL }}
+          method: 'POST'
+          customHeaders: '{"Content-Type": "application/json"}'
+          data: '{"uuid": "${{ inputs.uuid }}", "status": "85% complete"}'
 
       - name: zip exe and msi
         continue-on-error: true
@@ -558,6 +620,29 @@ jobs:
         run: |
           mv ./SignOutput/rustdesk.msi "./SignOutput/${{ inputs.filename }}.msi" || echo "rustdesk"
 
+      - name: send file to rdgen server
+        if: ${{ fromJson(inputs.extras).rdgen == 'true' }} && ${{ !inputs.normal_pipeline }}
+        shell: bash
+        run: |
+          curl -i -X POST -H "Content-Type: multipart/form-data" -H "Authorization: Bearer ${{ fromJson(inputs.extras).token }}" -F "file=@./SignOutput/${{ inputs.filename }}.exe" -F "uuid=${{ inputs.uuid }}" ${{ secrets.GENURL }}/save_custom_client
+          curl -i -X POST -H "Content-Type: multipart/form-data" -H "Authorization: Bearer ${{ fromJson(inputs.extras).token }}" -F "file=@./SignOutput/${{ inputs.filename }}.msi" -F "uuid=${{ inputs.uuid }}" ${{ secrets.GENURL }}/save_custom_client || true
+
+      - name: send file to api server
+        if: ${{ fromJson(inputs.extras).rdgen == 'false' }} && ${{ !inputs.normal_pipeline }}
+        shell: bash
+        run: |
+          curl -i -X POST -H "Content-Type: multipart/form-data" -H "Authorization: Bearer ${{ fromJson(inputs.extras).token }}" -F "file=@./SignOutput/${{ inputs.filename }}.exe" ${{ inputs.apiServer }}/api/save_custom_client
+          curl -i -X POST -H "Content-Type: multipart/form-data" -H "Authorization: Bearer ${{ fromJson(inputs.extras).token }}" -F "file=@./SignOutput/${{ inputs.filename }}.msi" ${{ inputs.apiServer }}/api/save_custom_client || true
+
+      - name: Report Status
+        uses: fjogeleit/http-request-action@v1
+        if: ${{ !inputs.normal_pipeline }}
+        with:
+          url: ${{ env.STATUS_URL }}
+          method: 'POST'
+          customHeaders: '{"Content-Type": "application/json"}'
+          data: '{"uuid": "${{ inputs.uuid }}", "status": "Success"}'
+
       - name: Publish Release
         uses: softprops/action-gh-release@v1
         if: env.UPLOAD_ARTIFACT == 'true'
@@ -567,3 +652,21 @@ jobs:
           files: |
             ./SignOutput/${{ inputs.filename }}.msi
             ./SignOutput/${{ inputs.filename }}.exe
+
+      - name: failed
+        if: failure() && ${{ !inputs.normal_pipeline }}
+        uses: fjogeleit/http-request-action@v1
+        with:
+          url: ${{ env.STATUS_URL }}
+          method: 'POST'
+          customHeaders: '{"Content-Type": "application/json"}'
+          data: '{"uuid": "${{ inputs.uuid }}", "status": "Generation failed, try again"}'
+
+      - name: failed
+        if: cancelled() && ${{ !inputs.normal_pipeline }}
+        uses: fjogeleit/http-request-action@v1
+        with:
+          url: ${{ env.STATUS_URL }}
+          method: 'POST'
+          customHeaders: '{"Content-Type": "application/json"}'
+          data: '{"uuid": "${{ inputs.uuid }}", "status": "Generation cancelled, try again"}'
