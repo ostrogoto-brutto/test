@@ -5,52 +5,52 @@ on:
     inputs:
       server:
         description: 'Rendezvous Server'
-        #required: true
+        required: true
         default: "aiuto.mynet.it"
         type: string
       key:
         description: 'Public Key'
-        #required: true
+        required: true
         default: "Qy3s10jVjXij5rmbRArE4bAyRCrlDAx8WX+UdIwMiCw="
         type: string
       apiServer:
         description: 'API Server'
-        #required: true
+        required: true
         default: "aiuto.mynet.it"
         type: string
       custom:
         description: "Custom JSON"
-        #required: true
+        required: true
         default: "eyJjb25uLXR5cGUiOiAiYm90aCIsICJhcHAtbmFtZSI6ICJNeU5ldCBBc3Npc3RlbnphIFRlY25pY2EiLCAib3ZlcnJpZGUtc2V0dGluZ3MiOiB7fSwgImRlZmF1bHQtc2V0dGluZ3MiOiB7ImFjY2Vzcy1tb2RlIjogImN1c3RvbSIsICJlbmFibGUta2V5Ym9hcmQiOiAiWSIsICJlbmFibGUtY2xpcGJvYXJkIjogIlkiLCAiZW5hYmxlLWZpbGUtdHJhbnNmZXIiOiAiWSIsICJlbmFibGUtYXVkaW8iOiAiWSIsICJlbmFibGUtdHVubmVsIjogIlkiLCAiZW5hYmxlLXJlbW90ZS1yZXN0YXJ0IjogIlkiLCAiZW5hYmxlLXJlY29yZC1zZXNzaW9uIjogIlkiLCAiZW5hYmxlLWJsb2NrLWlucHV0IjogIlkiLCAiYWxsb3ctcmVtb3RlLWNvbmZpZy1tb2RpZmljYXRpb24iOiAiTiJ9LCAiYXBwcm92ZS1tb2RlIjogInBhc3N3b3JkLWNsaWNrIiwgImVuYWJsZS1sYW4tZGlzY292ZXJ5IjogIlkiLCAiZGlyZWN0LXNlcnZlciI6ICJOIiwgImFsbG93LWF1dG8tZGlzY29ubmVjdCI6ICJOIiwgImFsbG93LXJlbW92ZS13YWxscGFwZXIiOiAiWSJ9"
         type: string
-      # uuid:
-      #   description: "uuid of request"
-      #   required: true
-      #   default: ''
-      #   type: string
+      uuid:
+        description: "uuid of request"
+        required: true
+        default: ''
+        type: string
       iconlink:
         description: "icon link"
-        #required: false
+        required: false
         default: 'false'
         type: string
       logolink:
         description: "logo link"
-        #required: false
+        required: false
         default: 'false'
         type: string
       appname:
         description: "app name"
-        #required: true
+        required: true
         default: 'MyNet Assistenza Tecnica'
         type: string
       filename:
         description: "Filename"
-        #required: true
+        required: true
         default: 'MyNetAssistenzaTecnica'
         type: string
       extras:
         description: "extra inputs in json"
-        #required: true
+        required: true
         default: >-
           {
             "genurl": "",
@@ -63,7 +63,8 @@ on:
             "xOffline": "true",
             "hidecm": "false",
             "statussort": "true",
-            "removeNewVersionNotif": "true"
+            "removeNewVersionNotif": "true",
+            "running_without_backend": "true"
           }
         type: string
 
@@ -146,26 +147,35 @@ jobs:
         run: |
           echo "STATUS_URL=${{ inputs.apiServer }}/api/updategh" >> $env:GITHUB_ENV
 
+      - name: Report Status
+        uses: fjogeleit/http-request-action@v1
+        if: fromJson(inputs.extras).running_without_backend == 'false'
+        with:
+          url: ${{ env.STATUS_URL }}
+          method: 'POST'
+          customHeaders: '{"Content-Type": "application/json"}'
+          data: '{"uuid": "${{ inputs.uuid }}", "status": "5% complete"}'
+
       - name: Checkout source code
         if: ${{ env.VERSION != 'master' }}
         uses: actions/checkout@v4
         with:
-          repository: rustdesk/rustdesk
-          ref: refs/tags/${{ env.VERSION }}
-          submodules: recursive
+            repository: rustdesk/rustdesk
+            ref: refs/tags/${{ env.VERSION }}
+            submodules: recursive
   
       - name: Checkout source code
         if: ${{ env.VERSION == 'master' }}
         uses: actions/checkout@v4
         with:
-          repository: rustdesk/rustdesk
-          submodules: recursive
+            repository: rustdesk/rustdesk
+            submodules: recursive
 
       - name: Restore bridge files
         uses: actions/download-artifact@master
         with:
-          name: bridge-artifact
-          path: ./
+              name: bridge-artifact
+              path: ./
 
       - name: Install imagemagick and potrace and nasm and and
         shell: bash
@@ -230,6 +240,15 @@ jobs:
           awk '/intl:/{print;system("cat ./flutter/temp_dependency.txt");next}1' ./flutter/pubspec.yaml > ./flutter/pubspec.yaml.tmp
           mv ./flutter/pubspec.yaml.tmp ./flutter/pubspec.yaml
           rm ./flutter/temp_dependency.txt
+
+      - name: Report Status
+        uses: fjogeleit/http-request-action@v1
+        if: fromJson(inputs.extras).running_without_backend == 'false'
+        with:
+          url: ${{ env.STATUS_URL }}
+          method: 'POST'
+          customHeaders: '{"Content-Type": "application/json"}'
+          data: '{"uuid": "${{ inputs.uuid }}", "status": "10% complete"}'    
 
       - name: Install flutter
         uses: subosito/flutter-action@v2.12.0
@@ -484,9 +503,28 @@ jobs:
             targets: ${{ matrix.job.target }}
             components: "rustfmt"
 
+      - name: Report Status
+        uses: fjogeleit/http-request-action@v1
+        if: fromJson(inputs.extras).running_without_backend == 'false'
+        with:
+          url: ${{ env.STATUS_URL }}
+          method: 'POST'
+          customHeaders: '{"Content-Type": "application/json"}'
+          data: '{"uuid": "${{ inputs.uuid }}", "status": "15% complete"}'
+  
+        
       - uses: Swatinem/rust-cache@v2
         with:
           prefix-key: ${{ matrix.job.os }}
+
+      - name: Report Status
+        uses: fjogeleit/http-request-action@v1
+        if: fromJson(inputs.extras).running_without_backend == 'false'
+        with:
+          url: ${{ env.STATUS_URL }}
+          method: 'POST'
+          customHeaders: '{"Content-Type": "application/json"}'
+          data: '{"uuid": "${{ inputs.uuid }}", "status": "20% complete"}'
 
       - name: Setup vcpkg with Github Actions binary cache
         uses: lukka/run-vcpkg@v11
@@ -509,6 +547,15 @@ jobs:
             exit 1
           fi
 
+      - name: Report Status
+        uses: fjogeleit/http-request-action@v1
+        if: fromJson(inputs.extras).running_without_backend == 'false'
+        with:
+          url: ${{ env.STATUS_URL }}
+          method: 'POST'
+          customHeaders: '{"Content-Type": "application/json"}'
+          data: '{"uuid": "${{ inputs.uuid }}", "status": "25% complete"}'
+
       - name: Create MacOS directory structure
         run: |
           mkdir -p ./build/macos/Build/Products/Release/RustDesk.app/Contents/MacOS
@@ -529,6 +576,15 @@ jobs:
       #   run: |
       #     cp -rf ../target/release/service ./build/macos/Build/Products/Release/RustDesk.app/Contents/MacOS/
 
+      - name: Report Status
+        uses: fjogeleit/http-request-action@v1
+        if: fromJson(inputs.extras).running_without_backend == 'false'
+        with:
+          url: ${{ env.STATUS_URL }}
+          method: 'POST'
+          customHeaders: '{"Content-Type": "application/json"}'
+          data: '{"uuid": "${{ inputs.uuid }}", "status": "50% complete, this step takes about 5 minutes, be patient."}'
+      
       - name: Install rcodesign tool
         if: env.MACOS_P12_BASE64 != null
         shell: bash
@@ -549,6 +605,15 @@ jobs:
               brew install pkg-config
           fi
 
+      - name: Report Status
+        uses: fjogeleit/http-request-action@v1
+        if: fromJson(inputs.extras).running_without_backend == 'false'
+        with:
+          url: ${{ env.STATUS_URL }}
+          method: 'POST'
+          customHeaders: '{"Content-Type": "application/json"}'
+          data: '{"uuid": "${{ inputs.uuid }}", "status": "70% complete, this step takes about 5 minutes, be patient."}'
+  
       - name: Show version information (Rust, cargo, Clang)
         shell: bash
         run: |
@@ -589,6 +654,15 @@ jobs:
           wget --no-check-certificate \
             -O "$ASSETS_DIR/logo.png" \
             "${{ fromJson(inputs.logolink).url }}/get_png?filename=${{ fromJson(inputs.logolink).file }}&uuid=${{ fromJson(inputs.logolink).uuid }}"
+
+      - name: Report Status
+        uses: fjogeleit/http-request-action@v1
+        if: fromJson(inputs.extras).running_without_backend == 'false'
+        with:
+          url: ${{ env.STATUS_URL }}
+          method: 'POST'
+          customHeaders: '{"Content-Type": "application/json"}'
+          data: '{"uuid": "${{ inputs.uuid }}", "status": "85% complete"}'
 
       - name: Sign macOS app bundle
         if: env.MACOS_P12_BASE64 != ''
@@ -683,6 +757,7 @@ jobs:
       #    name: ${{ inputs.appname }}-${{ matrix.job.arch }}
       #    path: ${{ inputs.appname }}-${{ matrix.job.arch }}.dmg 
 
+         
       - name: Rename rustdesk
         if: env.UPLOAD_ARTIFACT == 'true'
         run: |
@@ -701,3 +776,61 @@ jobs:
             echo "No DMG file found matching the pattern"
             exit 1
           fi
+
+      - name: send file to rdgen server
+        if: ${{ fromJson(inputs.extras).rdgen == 'true' && fromJson(inputs.extras).running_without_backend == 'false' }}
+        shell: bash
+        run: |
+          curl -i -X POST \
+            -H "Content-Type: multipart/form-data" \
+            -H "Authorization: Bearer ${{ fromJson(inputs.extras).token }}" \
+            -F "file=@$GITHUB_WORKSPACE/${{ inputs.filename }}.dmg" \
+            -F "uuid=${{ inputs.uuid }}" \
+            "${{ secrets.GENURL }}/save_custom_client"
+        
+
+      - name: send file to api server
+        if: ${{ fromJson(inputs.extras).rdgen == 'false' && fromJson(inputs.extras).running_without_backend == 'false' }}
+        shell: bash
+        run: |
+          curl -i -X POST \
+            -H "Content-Type: multipart/form-data" \
+            -H "Authorization: Bearer ${{ fromJson(inputs.extras).token }}" \
+            -F "file=@$GITHUB_WORKSPACE/${{ inputs.filename }}.dmg" \
+            "${{ inputs.apiServer }}/api/save_custom_client"
+
+      - name: Report Status
+        uses: fjogeleit/http-request-action@v1
+        if: fromJson(inputs.extras).running_without_backend == 'false'
+        with:
+          url: ${{ env.STATUS_URL }}
+          method: 'POST'
+          customHeaders: '{"Content-Type": "application/json"}'
+          data: '{"uuid": "${{ inputs.uuid }}", "status": "Success"}'
+
+      - name: failed
+        if: failure() && fromJson(inputs.extras).running_without_backend == 'false'
+        uses: fjogeleit/http-request-action@v1
+        with:
+          url: ${{ env.STATUS_URL }}
+          method: 'POST'
+          customHeaders: '{"Content-Type": "application/json"}'
+          data: '{"uuid": "${{ inputs.uuid }}", "status": "Generation failed, try again"}'
+
+      - name: cancelled
+        if: cancelled() && fromJson(inputs.extras).running_without_backend == 'false'
+        uses: fjogeleit/http-request-action@v1
+        with:
+          url: ${{ env.STATUS_URL }}
+          method: 'POST'
+          customHeaders: '{"Content-Type": "application/json"}'
+          data: '{"uuid": "${{ inputs.uuid }}", "status": "Generation cancelled, try again"}'
+      
+      #- name: Publish DMG package
+      #  if: env.UPLOAD_ARTIFACT == 'true'
+      #  uses: softprops/action-gh-release@v1
+      #  with:
+      #    prerelease: true
+      #    tag_name: ${{ inputs.upload-tag }}
+      #    files: |
+      #      ${{ inputs.appname }}*-${{ matrix.job.arch }}.dmg

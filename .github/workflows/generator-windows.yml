@@ -23,11 +23,11 @@ on:
         required: true
         default: "eyJjb25uLXR5cGUiOiAiYm90aCIsICJhcHAtbmFtZSI6ICJNeU5ldCBBc3Npc3RlbnphIFRlY25pY2EiLCAib3ZlcnJpZGUtc2V0dGluZ3MiOiB7fSwgImRlZmF1bHQtc2V0dGluZ3MiOiB7ImFjY2Vzcy1tb2RlIjogImN1c3RvbSIsICJlbmFibGUta2V5Ym9hcmQiOiAiWSIsICJlbmFibGUtY2xpcGJvYXJkIjogIlkiLCAiZW5hYmxlLWZpbGUtdHJhbnNmZXIiOiAiWSIsICJlbmFibGUtYXVkaW8iOiAiWSIsICJlbmFibGUtdHVubmVsIjogIlkiLCAiZW5hYmxlLXJlbW90ZS1yZXN0YXJ0IjogIlkiLCAiZW5hYmxlLXJlY29yZC1zZXNzaW9uIjogIlkiLCAiZW5hYmxlLWJsb2NrLWlucHV0IjogIlkiLCAiYWxsb3ctcmVtb3RlLWNvbmZpZy1tb2RpZmljYXRpb24iOiAiTiJ9LCAiYXBwcm92ZS1tb2RlIjogInBhc3N3b3JkLWNsaWNrIiwgImVuYWJsZS1sYW4tZGlzY292ZXJ5IjogIlkiLCAiZGlyZWN0LXNlcnZlciI6ICJOIiwgImFsbG93LWF1dG8tZGlzY29ubmVjdCI6ICJOIiwgImFsbG93LXJlbW92ZS13YWxscGFwZXIiOiAiWSJ9"
         type: string
-      # uuid:
-      #   description: "uuid of request"
-      #   required: true
-      #   default: ''
-      #   type: string
+      uuid:
+        description: "uuid of request"
+        required: true
+        default: ''
+        type: string
       iconlink:
         description: "icon link"
         required: false
@@ -63,15 +63,10 @@ on:
             "xOffline": "true",
             "hidecm": "false",
             "statussort": "true",
-            "removeNewVersionNotif": "true"
+            "removeNewVersionNotif": "true",
+            "running_without_backend": "true"
           }
         type: string
-      normal_pipeline:
-        description: "Is this running with RDGen or in a normal pipeline?"
-        required: true
-        default: true
-        type: boolean
-
 
 env:
   RUST_VERSION: "1.75" # sciter failed on m1 with 1.78 because of https://blog.rust-lang.org/2024/03/30/i128-layout-update.html
@@ -108,18 +103,15 @@ jobs:
       fail-fast: false
       matrix:
         job:
+          # - { target: i686-pc-windows-msvc        , os: windows-2022                  }
+          # - { target: x86_64-pc-windows-gnu       , os: windows-2022                  }
           - {
               target: x86_64-pc-windows-msvc,
               os: windows-2022,
               arch: x86_64,
               vcpkg-triplet: x64-windows-static,
             }
-          # - {
-          #     target: aarch64-pc-windows-msvc,
-          #     os: windows-2022,
-          #     arch: aarch64,
-          #     vcpkg-triplet: arm64-windows-static
-          # }
+          # - { target: aarch64-pc-windows-msvc, os: windows-2022, arch: aarch64 }
     steps:
       - name: Export GitHub Actions cache environment variables
         uses: actions/github-script@v6
@@ -129,18 +121,18 @@ jobs:
             core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
       
       - name: Set rdgen value
-        if: ${{ fromJson(inputs.extras).rdgen == 'true' }} && ${{ !inputs.normal_pipeline }}
+        if: ${{ fromJson(inputs.extras).rdgen == 'true' }}
         run: |
           echo "STATUS_URL=${{ secrets.GENURL }}/updategh" >> $env:GITHUB_ENV
 
       - name: Set rdgen value
-        if: ${{ fromJson(inputs.extras).rdgen == 'false' }} && ${{ !inputs.normal_pipeline }}
+        if: ${{ fromJson(inputs.extras).rdgen == 'false' }}
         run: |
           echo "STATUS_URL=${{ inputs.apiServer }}/api/updategh" >> $env:GITHUB_ENV
 
       - name: Report Status
         uses: fjogeleit/http-request-action@v1
-        if: ${{ !inputs.normal_pipeline }}
+        if: fromJson(inputs.extras).running_without_backend == 'false'
         with:
           url: ${{ env.STATUS_URL }}
           method: 'POST'
@@ -219,6 +211,7 @@ jobs:
           # ./flutter/pubspec.yaml
           sed -i '/intl:/a \ \ archive: ^3.6.1' ./flutter/pubspec.yaml
 
+
       - name: Install LLVM and Clang
         uses: KyleMayes/install-llvm-action@v1
         with:
@@ -226,7 +219,7 @@ jobs:
 
       - name: Report Status
         uses: fjogeleit/http-request-action@v1
-        if: ${{ !inputs.normal_pipeline }}
+        if: fromJson(inputs.extras).running_without_backend == 'false'
         with:
           url: ${{ env.STATUS_URL }}
           method: 'POST'
@@ -239,6 +232,16 @@ jobs:
           channel: "stable"
           flutter-version: ${{ env.FLUTTER_VERSION }}
 
+      # https://github.com/flutter/flutter/issues/155685
+      - name: Replace engine with rustdesk custom flutter engine
+        if: false
+        run: |
+          flutter doctor -v
+          flutter precache --windows
+          Invoke-WebRequest -Uri https://github.com/rustdesk/engine/releases/download/main/windows-x64-release.zip -OutFile windows-x64-release.zip
+          Expand-Archive -Path windows-x64-release.zip -DestinationPath windows-x64-release
+          mv -Force windows-x64-release/*  C:/hostedtoolcache/windows/flutter/stable-${{ env.FLUTTER_VERSION }}-x64/bin/cache/artifacts/engine/windows-x64-release/
+
       - name: Patch flutter
         continue-on-error: true
         shell: bash
@@ -250,13 +253,13 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@v1
         with:
-          toolchain: ${{ env.RUST_VERSION }}
+          toolchain: ${{ env.SCITER_RUST_VERSION }}
           targets: ${{ matrix.job.target }}
           components: "rustfmt"
 
       - name: Report Status
         uses: fjogeleit/http-request-action@v1
-        if: ${{ !inputs.normal_pipeline }}
+        if: fromJson(inputs.extras).running_without_backend == 'false'
         with:
           url: ${{ env.STATUS_URL }}
           method: 'POST'
@@ -269,7 +272,7 @@ jobs:
         
       - name: Report Status
         uses: fjogeleit/http-request-action@v1
-        if: ${{ !inputs.normal_pipeline }}
+        if: fromJson(inputs.extras).running_without_backend == 'false'
         with:
           url: ${{ env.STATUS_URL }}
           method: 'POST'
@@ -329,6 +332,7 @@ jobs:
           magick ./res/icon.png -resize 128x128 ./res/128x128.png
           magick ./res/128x128.png -resize 200% ./res/128x128@2x.png
 
+
       - name: ui.rs icon
         if: ${{ inputs.iconlink != 'false' }}
         continue-on-error: true
@@ -381,6 +385,7 @@ jobs:
           wget https://raw.githubusercontent.com/bryangerlach/rdgen/refs/heads/master/.github/patches/removeNewVersionNotif.diff
           git apply removeNewVersionNotif.diff
 
+
       - name: run as admin
         continue-on-error: true
         if: ${{ fromJson(inputs.extras).runasadmin == 'true' }}
@@ -391,7 +396,7 @@ jobs:
 
       - name: Report Status
         uses: fjogeleit/http-request-action@v1
-        if: ${{ !inputs.normal_pipeline }}
+        if: fromJson(inputs.extras).running_without_backend == 'false'
         with:
           url: ${{ env.STATUS_URL }}
           method: 'POST'
@@ -410,7 +415,7 @@ jobs:
 
       - name: Report Status
         uses: fjogeleit/http-request-action@v1
-        if: ${{ !inputs.normal_pipeline }}
+        if: fromJson(inputs.extras).running_without_backend == 'false'
         with:
           url: ${{ env.STATUS_URL }}
           method: 'POST'
@@ -439,6 +444,7 @@ jobs:
         continue-on-error: true
         run: |
           Invoke-WebRequest -Uri ${{ fromJson(inputs.logolink).url }}/get_png?filename=${{ fromJson(inputs.logolink).file }}"&"uuid=${{ fromJson(inputs.logolink).uuid }} -OutFile ./rustdesk/data/flutter_assets/assets/logo.png
+
 
       - name: find Runner.res
         # Windows: find Runner.res (compiled from ./flutter/windows/runner/Runner.rc), copy to ./Runner.res
@@ -479,7 +485,7 @@ jobs:
 
       - name: Report Status
         uses: fjogeleit/http-request-action@v1
-        if: ${{ !inputs.normal_pipeline }}
+        if: fromJson(inputs.extras).running_without_backend == 'false'
         with:
           url: ${{ env.STATUS_URL }}
           method: 'POST'
@@ -506,11 +512,13 @@ jobs:
         shell: pwsh
         run: |
           Expand-Archive -Path ./rustdesk/signed_files.zip -DestinationPath ./rustdek/ -Force
+          
 
       - name: Create custom.txt file
         shell: bash
         run: |
-          echo -n "${{ inputs.custom }}" | cat > ./rustdesk/custom.txt
+          echo -n "${{ env.CUSTOM }}" | cat > ./rustdesk/custom.txt
+        
 
       - name: Build self-extracted executable
         shell: bash
@@ -550,7 +558,7 @@ jobs:
 
       - name: Report Status
         uses: fjogeleit/http-request-action@v1
-        if: ${{ !inputs.normal_pipeline }}
+        if: fromJson(inputs.extras).running_without_backend == 'false'
         with:
           url: ${{ env.STATUS_URL }}
           method: 'POST'
@@ -589,6 +597,16 @@ jobs:
       #     folder: './SignOutput'
       #     recursive: false
 
+      # - name: Publish Release
+      #   uses: softprops/action-gh-release@v1
+      #   if: env.UPLOAD_ARTIFACT == 'true'
+      #   with:
+      #     prerelease: true
+      #     tag_name: ${{ env.TAG_NAME }}
+      #     files: |
+      #       ./SignOutput/rustdesk-*.msi
+      #       ./SignOutput/rustdesk-*.exe
+
       - name: rename rustdesk.exe to filename.exe
         run: |
           mv ./SignOutput/rustdesk.exe "./SignOutput/${{ inputs.filename }}.exe" || echo "rustdesk"
@@ -598,15 +616,24 @@ jobs:
         run: |
           mv ./SignOutput/rustdesk.msi "./SignOutput/${{ inputs.filename }}.msi" || echo "rustdesk"
 
+      # - name: Upload to FTP
+      #   if: ${{ fromJson(inputs.extras).rdgen == 'true' }}
+      #   uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+      #   with:
+      #     server: ${{ secrets.GEN_FTP_SERVER }}
+      #     username: ${{ secrets.GEN_FTP_USER }}
+      #     password: ${{ secrets.GEN_FTP_PASSWORD }}
+      #     local-dir: ./SignOutput/
+      #     server-dir: /root/rdgen/exe/${{ env.UUIDFOLDER }}/
       - name: send file to rdgen server
-        if: ${{ fromJson(inputs.extras).rdgen == 'true' && !inputs.normal_pipeline }}
+        if: ${{ fromJson(inputs.extras).rdgen == 'true' && fromJson(inputs.extras).running_without_backend == 'false' }}
         shell: bash
         run: |
           curl -i -X POST -H "Content-Type: multipart/form-data" -H "Authorization: Bearer ${{ fromJson(inputs.extras).token }}" -F "file=@./SignOutput/${{ inputs.filename }}.exe" -F "uuid=${{ inputs.uuid }}" ${{ secrets.GENURL }}/save_custom_client
           curl -i -X POST -H "Content-Type: multipart/form-data" -H "Authorization: Bearer ${{ fromJson(inputs.extras).token }}" -F "file=@./SignOutput/${{ inputs.filename }}.msi" -F "uuid=${{ inputs.uuid }}" ${{ secrets.GENURL }}/save_custom_client || true
 
       - name: send file to api server
-        if: ${{ fromJson(inputs.extras).rdgen == 'false' && !inputs.normal_pipeline }}
+        if: ${{ fromJson(inputs.extras).rdgen == 'false' && fromJson(inputs.extras).running_without_backend == 'false' }}
         shell: bash
         run: |
           curl -i -X POST -H "Content-Type: multipart/form-data" -H "Authorization: Bearer ${{ fromJson(inputs.extras).token }}" -F "file=@./SignOutput/${{ inputs.filename }}.exe" ${{ inputs.apiServer }}/api/save_custom_client
@@ -614,25 +641,15 @@ jobs:
 
       - name: Report Status
         uses: fjogeleit/http-request-action@v1
-        if: ${{ !inputs.normal_pipeline }}
+        if: fromJson(inputs.extras).running_without_backend == 'false'
         with:
           url: ${{ env.STATUS_URL }}
           method: 'POST'
           customHeaders: '{"Content-Type": "application/json"}'
           data: '{"uuid": "${{ inputs.uuid }}", "status": "Success"}'
 
-      - name: Publish Release
-        uses: softprops/action-gh-release@v1
-        if: env.UPLOAD_ARTIFACT == 'true'
-        with:
-          prerelease: true
-          tag_name: ${{ env.VERSION }}
-          files: |
-            ./SignOutput/${{ inputs.filename }}.msi
-            ./SignOutput/${{ inputs.filename }}.exe
-
       - name: failed
-        if: failure() && !inputs.normal_pipeline
+        if: failure() && fromJson(inputs.extras).running_without_backend == 'false'
         uses: fjogeleit/http-request-action@v1
         with:
           url: ${{ env.STATUS_URL }}
@@ -640,8 +657,8 @@ jobs:
           customHeaders: '{"Content-Type": "application/json"}'
           data: '{"uuid": "${{ inputs.uuid }}", "status": "Generation failed, try again"}'
 
-      - name: failed
-        if: cancelled() && !inputs.normal_pipeline
+      - name: cancelled
+        if: cancelled() && fromJson(inputs.extras).running_without_backend == 'false'
         uses: fjogeleit/http-request-action@v1
         with:
           url: ${{ env.STATUS_URL }}
