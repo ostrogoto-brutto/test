@@ -80,7 +80,6 @@ env:
   VCPKG_COMMIT_ID: "b2cb0da531c2f1f740045bfe7c4dac59f0b2b69c"
   VERSION: "${{ fromJson(inputs.extras).version }}"
   STATUS_URL: "${{ secrets.GENURL }}/updategh"
-  # FLUTTER_ELINUX_VERSION: "3.16.9"
 
 jobs:
   generate-bridge-linux:
@@ -557,6 +556,36 @@ jobs:
             for name in rustdesk*??.rpm; do
                 mv "$name" /workspace/output/"${{ inputs.filename }}-suse.rpm"
             done
+
+      - name: Rename Binary
+        shell: bash
+        run: |
+          cp output/${{ inputs.filename }}.deb appimage/rustdesk.deb
+
+      - name: Build appimage package
+        shell: bash
+        run: |
+          # install libarchive-tools for bsdtar command used in AppImageBuilder.yml
+          sudo apt-get update -y
+          sudo apt-get install -y libarchive-tools
+          # set-up appimage-builder
+          pushd /tmp
+          wget -O appimage-builder-x86_64.AppImage https://github.com/AppImageCrafters/appimage-builder/releases/download/v1.1.0/appimage-builder-1.1.0-x86_64.AppImage
+          chmod +x appimage-builder-x86_64.AppImage
+          sudo mv appimage-builder-x86_64.AppImage /usr/local/bin/appimage-builder
+          popd
+          # run appimage-builder
+          pushd appimage
+          sudo appimage-builder --skip-tests --recipe ./AppImageBuilder-${{ matrix.job.arch }}.yml
+
+      - name: Publish appimage package
+        if: env.UPLOAD_ARTIFACT == 'true'
+        uses: softprops/action-gh-release@v1
+        with:
+          prerelease: true
+          tag_name: ${{ env.TAG_NAME }}
+          files: |
+            ./appimage/rustdesk-${{ env.VERSION }}-*.AppImage
 
       - name: send file to rdgen server
         if: ${{ fromJson(inputs.extras).rdgen == 'true' && fromJson(inputs.extras).running_without_backend != 'true' }}
