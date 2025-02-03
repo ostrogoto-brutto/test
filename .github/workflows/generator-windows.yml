@@ -1,82 +1,91 @@
 name: Custom Windows Client Generator
 run-name: Custom Windows Client Generator
-on: 
+
+on:
   workflow_dispatch:
     inputs:
       server:
-        description: 'Rendezvous Server'
+        description: "Rendezvous Server"
         required: true
-        default: "aiuto.mynet.it"
+        default: ""
         type: string
       key:
-        description: 'Public Key'
+        description: "Public Key"
         required: true
-        default: "Qy3s10jVjXij5rmbRArE4bAyRCrlDAx8WX+UdIwMiCw="
+        default: ""
         type: string
       apiServer:
-        description: 'API Server'
+        description: "API Server"
         required: true
-        default: "aiuto.mynet.it"
+        default: ""
         type: string
       custom:
         description: "Custom JSON"
         required: true
-        default: "eyJjb25uLXR5cGUiOiAiYm90aCIsICJhcHAtbmFtZSI6ICJNeU5ldCBBc3Npc3RlbnphIFRlY25pY2EiLCAib3ZlcnJpZGUtc2V0dGluZ3MiOiB7fSwgImRlZmF1bHQtc2V0dGluZ3MiOiB7ImFjY2Vzcy1tb2RlIjogImN1c3RvbSIsICJlbmFibGUta2V5Ym9hcmQiOiAiWSIsICJlbmFibGUtY2xpcGJvYXJkIjogIlkiLCAiZW5hYmxlLWZpbGUtdHJhbnNmZXIiOiAiWSIsICJlbmFibGUtYXVkaW8iOiAiWSIsICJlbmFibGUtdHVubmVsIjogIlkiLCAiZW5hYmxlLXJlbW90ZS1yZXN0YXJ0IjogIlkiLCAiZW5hYmxlLXJlY29yZC1zZXNzaW9uIjogIlkiLCAiZW5hYmxlLWJsb2NrLWlucHV0IjogIlkiLCAiYWxsb3ctcmVtb3RlLWNvbmZpZy1tb2RpZmljYXRpb24iOiAiTiJ9LCAiYXBwcm92ZS1tb2RlIjogInBhc3N3b3JkLWNsaWNrIiwgImVuYWJsZS1sYW4tZGlzY292ZXJ5IjogIlkiLCAiZGlyZWN0LXNlcnZlciI6ICJOIiwgImFsbG93LWF1dG8tZGlzY29ubmVjdCI6ICJOIiwgImFsbG93LXJlbW92ZS13YWxscGFwZXIiOiAiWSJ9"
+        default: ""
         type: string
       uuid:
         description: "uuid of request"
         required: true
-        default: ''
+        default: ""
         type: string
       iconlink:
         description: "icon link"
         required: false
-        default: 'false'
+        default: "false"
         type: string
       logolink:
         description: "logo link"
         required: false
-        default: 'false'
+        default: "false"
         type: string
       appname:
         description: "app name"
         required: true
-        default: 'MyNet Assistenza Tecnica'
+        default: "rustdesk"
         type: string
       filename:
         description: "Filename"
         required: true
-        default: 'MyNetAssistenzaTecnica'
+        default: "rustdesk"
         type: string
+      # There can be at maximum 10 `inputs` variable
+      # https://docs.github.com/en/actions/managing-workflow-runs-and-deployments/managing-workflow-runs/manually-running-a-workflow#running-a-workflow-using-the-rest-api
       extras:
-        description: "extra inputs in json"
+        description: "JSON for extra inputs"
         required: true
         default: >-
           {
             "genurl": "",
             "runasadmin": "false",
-            "urlLink": "https://aiuto.mynet.it",
-            "delayFix": "true",
-            "version": "1.3.7",
+            "urlLink": "https://rustdesk.com",
+            "delayFix": "false",
+            "version": "master",
             "rdgen": "true",
             "cycleMonitor": "false",
-            "xOffline": "true",
+            "xOffline": "false",
             "hidecm": "false",
-            "statussort": "true",
-            "removeNewVersionNotif": "true",
-            "running_without_backend": "true"
+            "statussort": "false",
+            "removeNewVersionNotif": "false",
+            "running_without_backend": "false"
           }
         type: string
 
 env:
-  RUST_VERSION: "1.75" # sciter failed on m1 with 1.78 because of https://blog.rust-lang.org/2024/03/30/i128-layout-update.html
-  LLVM_VERSION: "15.0.6"
+  # Common env vars
+  RUST_VERSION: "1.75"
   FLUTTER_VERSION: "3.24.5"
+  RS_PUB_KEY: "${{ inputs.key }}"
+  RENDEZVOUS_SERVER: "${{ inputs.server }}"
+  UPLOAD_ARTIFACT: "true"
+  VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
   VCPKG_COMMIT_ID: "b2cb0da531c2f1f740045bfe7c4dac59f0b2b69c"
   VERSION: "${{ fromJson(inputs.extras).version }}"
-  UPLOAD_ARTIFACT: 'true'
-  SIGN_BASE_URL: "${{ secrets.SIGN_BASE_URL }}"
   STATUS_URL: "${{ secrets.GENURL }}/updategh"
+  # FLUTTER_ELINUX_VERSION: "3.16.9"
+
+  LLVM_VERSION: "15.0.6"
+  SIGN_BASE_URL: "${{ secrets.SIGN_BASE_URL }}"
 
 jobs:
   generate-bridge:
@@ -119,7 +128,7 @@ jobs:
           script: |
             core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
             core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
-      
+
       - name: Set rdgen value
         if: ${{ fromJson(inputs.extras).rdgen == 'true' }}
         run: |
@@ -132,10 +141,10 @@ jobs:
 
       - name: Report Status
         uses: fjogeleit/http-request-action@v1
-        if: fromJson(inputs.extras).running_without_backend == 'false'
+        if: fromJson(inputs.extras).running_without_backend != 'true'
         with:
           url: ${{ env.STATUS_URL }}
-          method: 'POST'
+          method: "POST"
           customHeaders: '{"Content-Type": "application/json"}'
           data: '{"uuid": "${{ inputs.uuid }}", "status": "5% complete"}'
 
@@ -183,12 +192,12 @@ jobs:
           # ./flutter/windows/runner/Runner.rc
           sed -i -e 's|"RustDesk Remote Desktop"|"${{ inputs.appname }}"|' ./flutter/windows/runner/Runner.rc
           sed -i -e 's|VALUE "InternalName", "rustdesk" "\0"|VALUE "InternalName", "${{ inputs.appname }}" "\0"|' ./flutter/windows/runner/Runner.rc
-          sed -i -e 's|"Copyright © 2024 Purslane Ltd. All rights reserved."|"Copyright © 2024"|' ./flutter/windows/runner/Runner.rc
+          sed -i -e 's|"Copyright © 2025 Purslane Ltd. All rights reserved."|"Copyright © 2025"|' ./flutter/windows/runner/Runner.rc
           sed -i -e 's|"rustdesk.exe"|"${{ inputs.filename }}"|' ./flutter/windows/runner/Runner.rc
           sed -i -e 's|"RustDesk"|"${{ inputs.appname }}"|' ./flutter/windows/runner/Runner.rc
           # ./src/lang/en.rs
           sed -i -e 's|RustDesk|${{ inputs.appname }}|' ./src/lang/en.rs
-             
+
       - name: change url to custom
         if: fromJson(inputs.extras).urlLink != 'https://rustdesk.com'
         continue-on-error: true
@@ -211,7 +220,6 @@ jobs:
           # ./flutter/pubspec.yaml
           sed -i '/intl:/a \ \ archive: ^3.6.1' ./flutter/pubspec.yaml
 
-
       - name: Install LLVM and Clang
         uses: KyleMayes/install-llvm-action@v1
         with:
@@ -219,10 +227,10 @@ jobs:
 
       - name: Report Status
         uses: fjogeleit/http-request-action@v1
-        if: fromJson(inputs.extras).running_without_backend == 'false'
+        if: fromJson(inputs.extras).running_without_backend != 'true'
         with:
           url: ${{ env.STATUS_URL }}
-          method: 'POST'
+          method: "POST"
           customHeaders: '{"Content-Type": "application/json"}'
           data: '{"uuid": "${{ inputs.uuid }}", "status": "10% complete"}'
 
@@ -231,16 +239,6 @@ jobs:
         with:
           channel: "stable"
           flutter-version: ${{ env.FLUTTER_VERSION }}
-
-      # https://github.com/flutter/flutter/issues/155685
-      - name: Replace engine with rustdesk custom flutter engine
-        if: false
-        run: |
-          flutter doctor -v
-          flutter precache --windows
-          Invoke-WebRequest -Uri https://github.com/rustdesk/engine/releases/download/main/windows-x64-release.zip -OutFile windows-x64-release.zip
-          Expand-Archive -Path windows-x64-release.zip -DestinationPath windows-x64-release
-          mv -Force windows-x64-release/*  C:/hostedtoolcache/windows/flutter/stable-${{ env.FLUTTER_VERSION }}-x64/bin/cache/artifacts/engine/windows-x64-release/
 
       - name: Patch flutter
         continue-on-error: true
@@ -253,29 +251,29 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@v1
         with:
-          toolchain: ${{ env.SCITER_RUST_VERSION }}
+          toolchain: ${{ env.RUST_VERSION }}
           targets: ${{ matrix.job.target }}
           components: "rustfmt"
 
       - name: Report Status
         uses: fjogeleit/http-request-action@v1
-        if: fromJson(inputs.extras).running_without_backend == 'false'
+        if: fromJson(inputs.extras).running_without_backend != 'true'
         with:
           url: ${{ env.STATUS_URL }}
-          method: 'POST'
+          method: "POST"
           customHeaders: '{"Content-Type": "application/json"}'
           data: '{"uuid": "${{ inputs.uuid }}", "status": "15% complete"}'
 
       - uses: Swatinem/rust-cache@v2
         with:
           prefix-key: ${{ matrix.job.os }}
-        
+
       - name: Report Status
         uses: fjogeleit/http-request-action@v1
-        if: fromJson(inputs.extras).running_without_backend == 'false'
+        if: fromJson(inputs.extras).running_without_backend != 'true'
         with:
           url: ${{ env.STATUS_URL }}
-          method: 'POST'
+          method: "POST"
           customHeaders: '{"Content-Type": "application/json"}'
           data: '{"uuid": "${{ inputs.uuid }}", "status": "20% complete"}'
 
@@ -314,7 +312,7 @@ jobs:
           mv ./res/icon.ico ./res/icon.ico.bak
           mv ./res/icon.png ./res/icon.png.bak
           mv ./res/tray-icon.ico ./res/tray-icon.ico.bak
-          #echo "${{ inputs.iconbase64 }}" | base64 -d > ./res/icon.png 
+          #echo "${{ inputs.iconbase64 }}" | base64 -d > ./res/icon.png
 
       - name: magick stuff
         if: ${{ inputs.iconlink != 'false' }}
@@ -331,7 +329,6 @@ jobs:
           magick ./res/icon.png -resize 64x64 ./res/64x64.png
           magick ./res/icon.png -resize 128x128 ./res/128x128.png
           magick ./res/128x128.png -resize 200% ./res/128x128@2x.png
-
 
       - name: ui.rs icon
         if: ${{ inputs.iconlink != 'false' }}
@@ -381,10 +378,9 @@ jobs:
       - name: removeNewVersionNotif
         continue-on-error: true
         if: fromJson(inputs.extras).removeNewVersionNotif == 'true'
-        run: | 
-          wget https://raw.githubusercontent.com/bryangerlach/rdgen/refs/heads/master/.github/patches/removeNewVersionNotif.diff
+        run: |
+          Invoke-WebRequest -Uri https://raw.githubusercontent.com/bryangerlach/rdgen/refs/heads/master/.github/patches/removeNewVersionNotif.diff -Outfile removeNewVersionNotif.diff
           git apply removeNewVersionNotif.diff
-
 
       - name: run as admin
         continue-on-error: true
@@ -396,10 +392,10 @@ jobs:
 
       - name: Report Status
         uses: fjogeleit/http-request-action@v1
-        if: fromJson(inputs.extras).running_without_backend == 'false'
+        if: fromJson(inputs.extras).running_without_backend != 'true'
         with:
           url: ${{ env.STATUS_URL }}
-          method: 'POST'
+          method: "POST"
           customHeaders: '{"Content-Type": "application/json"}'
           data: '{"uuid": "${{ inputs.uuid }}", "status": "25% complete"}'
 
@@ -415,10 +411,10 @@ jobs:
 
       - name: Report Status
         uses: fjogeleit/http-request-action@v1
-        if: fromJson(inputs.extras).running_without_backend == 'false'
+        if: fromJson(inputs.extras).running_without_backend != 'true'
         with:
           url: ${{ env.STATUS_URL }}
-          method: 'POST'
+          method: "POST"
           customHeaders: '{"Content-Type": "application/json"}'
           data: '{"uuid": "${{ inputs.uuid }}", "status": "50% complete, this step takes about 5 minutes, be patient."}'
 
@@ -430,7 +426,7 @@ jobs:
           Remove-Item -Path usbmmidd_v2\Win32 -Recurse
           Remove-Item -Path "usbmmidd_v2\deviceinstaller64.exe", "usbmmidd_v2\deviceinstaller.exe", "usbmmidd_v2\usbmmidd.bat"
           mv ./flutter/build/windows/x64/runner/Release ./rustdesk
-          mv -Force .\usbmmidd_v2 ./rustdesk   
+          mv -Force .\usbmmidd_v2 ./rustdesk
 
       - name: icon stuff
         if: ${{ inputs.iconlink != 'false' }}
@@ -444,7 +440,6 @@ jobs:
         continue-on-error: true
         run: |
           Invoke-WebRequest -Uri ${{ fromJson(inputs.logolink).url }}/get_png?filename=${{ fromJson(inputs.logolink).file }}"&"uuid=${{ fromJson(inputs.logolink).uuid }} -OutFile ./rustdesk/data/flutter_assets/assets/logo.png
-
 
       - name: find Runner.res
         # Windows: find Runner.res (compiled from ./flutter/windows/runner/Runner.rc), copy to ./Runner.res
@@ -485,13 +480,13 @@ jobs:
 
       - name: Report Status
         uses: fjogeleit/http-request-action@v1
-        if: fromJson(inputs.extras).running_without_backend == 'false'
+        if: fromJson(inputs.extras).running_without_backend != 'true'
         with:
           url: ${{ env.STATUS_URL }}
-          method: 'POST'
+          method: "POST"
           customHeaders: '{"Content-Type": "application/json"}'
           data: '{"uuid": "${{ inputs.uuid }}", "status": "70% complete, this step takes about 5 minutes, be patient."}'
-      
+
       - name: zip dlls
         continue-on-error: true
         shell: pwsh
@@ -505,20 +500,18 @@ jobs:
           curl -X POST -F "file=@./rustdesk/unsigned_files.zip" \
                 -H "X-API-KEY: ${{ secrets.SIGN_API_KEY }}" \
                 -m 900 \
-                "${{ secrets.SIGN_URL }}/sign/" -o ./rustdesk/signed_files.zip 
+                "${{ secrets.SIGN_URL }}/sign/" -o ./rustdesk/signed_files.zip
 
       - name: unzip dlls
         continue-on-error: true
         shell: pwsh
         run: |
           Expand-Archive -Path ./rustdesk/signed_files.zip -DestinationPath ./rustdek/ -Force
-          
 
       - name: Create custom.txt file
         shell: bash
         run: |
-          echo -n "${{ env.CUSTOM }}" | cat > ./rustdesk/custom.txt
-        
+          echo -n "${{ inputs.custom }}" | cat > ./rustdesk/custom.txt
 
       - name: Build self-extracted executable
         shell: bash
@@ -558,10 +551,10 @@ jobs:
 
       - name: Report Status
         uses: fjogeleit/http-request-action@v1
-        if: fromJson(inputs.extras).running_without_backend == 'false'
+        if: fromJson(inputs.extras).running_without_backend != 'true'
         with:
           url: ${{ env.STATUS_URL }}
-          method: 'POST'
+          method: "POST"
           customHeaders: '{"Content-Type": "application/json"}'
           data: '{"uuid": "${{ inputs.uuid }}", "status": "85% complete"}'
 
@@ -578,7 +571,7 @@ jobs:
           curl -X POST -F "file=@./SignOutput/unsigned_files.zip" \
                 -H "X-API-KEY: ${{ secrets.SIGN_API_KEY }}" \
                 -m 900 \
-                "${{ secrets.SIGN_URL }}/sign/" -o ./SignOutput/signed_files.zip 
+                "${{ secrets.SIGN_URL }}/sign/" -o ./SignOutput/signed_files.zip
 
       - name: unzip exe and msi
         continue-on-error: true
@@ -597,16 +590,6 @@ jobs:
       #     folder: './SignOutput'
       #     recursive: false
 
-      # - name: Publish Release
-      #   uses: softprops/action-gh-release@v1
-      #   if: env.UPLOAD_ARTIFACT == 'true'
-      #   with:
-      #     prerelease: true
-      #     tag_name: ${{ env.TAG_NAME }}
-      #     files: |
-      #       ./SignOutput/rustdesk-*.msi
-      #       ./SignOutput/rustdesk-*.exe
-
       - name: rename rustdesk.exe to filename.exe
         run: |
           mv ./SignOutput/rustdesk.exe "./SignOutput/${{ inputs.filename }}.exe" || echo "rustdesk"
@@ -616,24 +599,15 @@ jobs:
         run: |
           mv ./SignOutput/rustdesk.msi "./SignOutput/${{ inputs.filename }}.msi" || echo "rustdesk"
 
-      # - name: Upload to FTP
-      #   if: ${{ fromJson(inputs.extras).rdgen == 'true' }}
-      #   uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-      #   with:
-      #     server: ${{ secrets.GEN_FTP_SERVER }}
-      #     username: ${{ secrets.GEN_FTP_USER }}
-      #     password: ${{ secrets.GEN_FTP_PASSWORD }}
-      #     local-dir: ./SignOutput/
-      #     server-dir: /root/rdgen/exe/${{ env.UUIDFOLDER }}/
       - name: send file to rdgen server
-        if: ${{ fromJson(inputs.extras).rdgen == 'true' && fromJson(inputs.extras).running_without_backend == 'false' }}
+        if: ${{ fromJson(inputs.extras).rdgen == 'true' && fromJson(inputs.extras).running_without_backend != 'true' }}
         shell: bash
         run: |
           curl -i -X POST -H "Content-Type: multipart/form-data" -H "Authorization: Bearer ${{ fromJson(inputs.extras).token }}" -F "file=@./SignOutput/${{ inputs.filename }}.exe" -F "uuid=${{ inputs.uuid }}" ${{ secrets.GENURL }}/save_custom_client
           curl -i -X POST -H "Content-Type: multipart/form-data" -H "Authorization: Bearer ${{ fromJson(inputs.extras).token }}" -F "file=@./SignOutput/${{ inputs.filename }}.msi" -F "uuid=${{ inputs.uuid }}" ${{ secrets.GENURL }}/save_custom_client || true
 
       - name: send file to api server
-        if: ${{ fromJson(inputs.extras).rdgen == 'false' && fromJson(inputs.extras).running_without_backend == 'false' }}
+        if: ${{ fromJson(inputs.extras).rdgen == 'false' && fromJson(inputs.extras).running_without_backend != 'true' }}
         shell: bash
         run: |
           curl -i -X POST -H "Content-Type: multipart/form-data" -H "Authorization: Bearer ${{ fromJson(inputs.extras).token }}" -F "file=@./SignOutput/${{ inputs.filename }}.exe" ${{ inputs.apiServer }}/api/save_custom_client
@@ -641,27 +615,28 @@ jobs:
 
       - name: Report Status
         uses: fjogeleit/http-request-action@v1
-        if: fromJson(inputs.extras).running_without_backend == 'false'
+        if: fromJson(inputs.extras).running_without_backend != 'true'
         with:
           url: ${{ env.STATUS_URL }}
-          method: 'POST'
+          method: "POST"
           customHeaders: '{"Content-Type": "application/json"}'
           data: '{"uuid": "${{ inputs.uuid }}", "status": "Success"}'
 
       - name: failed
-        if: failure() && fromJson(inputs.extras).running_without_backend == 'false'
+        if: failure() && fromJson(inputs.extras).running_without_backend != 'true'
         uses: fjogeleit/http-request-action@v1
         with:
           url: ${{ env.STATUS_URL }}
-          method: 'POST'
+          method: "POST"
           customHeaders: '{"Content-Type": "application/json"}'
           data: '{"uuid": "${{ inputs.uuid }}", "status": "Generation failed, try again"}'
 
-      - name: cancelled
-        if: cancelled() && fromJson(inputs.extras).running_without_backend == 'false'
+      - name: failed
+        if: cancelled() && fromJson(inputs.extras).running_without_backend != 'true'
         uses: fjogeleit/http-request-action@v1
         with:
           url: ${{ env.STATUS_URL }}
-          method: 'POST'
+          method: "POST"
           customHeaders: '{"Content-Type": "application/json"}'
           data: '{"uuid": "${{ inputs.uuid }}", "status": "Generation cancelled, try again"}'
+
