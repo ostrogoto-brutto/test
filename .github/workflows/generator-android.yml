@@ -32,12 +32,12 @@ on:
       iconlink:
         description: "icon link"
         required: false
-        default: ''
+        default: 'false'
         type: string
       logolink:
         description: "logo link"
         required: false
-        default: ''
+        default: 'false'
         type: string
       appname:
         description: "app name"
@@ -294,7 +294,7 @@ jobs:
           key: ${{ matrix.job.target }}
 
       - name: icon stuff
-        if: ${{ inputs.iconlink != '' }}
+        if: ${{ inputs.iconlink != 'false' }}
         continue-on-error: true
         shell: bash
         run: |
@@ -438,7 +438,7 @@ jobs:
           data: '{"uuid": "${{ inputs.uuid }}", "status": "35% complete"}'
 
       - name: replace flutter icons
-        if: ${{ inputs.iconlink != '' }}
+        if: ${{ inputs.iconlink != 'false' }}
         run: |
           pushd ./flutter
           flutter pub get
