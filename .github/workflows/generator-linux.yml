@@ -529,42 +529,10 @@ jobs:
               mv "$name" /workspace/output/"${{ inputs.filename }}.deb"
             done
 
-            # rpm package
-            echo -e "start packaging fedora package"
-            pushd /workspace
-            case ${{ matrix.job.arch }} in
-              aarch64)
-                sed -i "s/linux\/x64/linux\/arm64/g" ./res/rpm-flutter.spec
-                ;;
-            esac
-            HBB=`pwd` rpmbuild ./res/rpm-flutter.spec -bb
-            pushd ~/rpmbuild/RPMS/${{ matrix.job.arch }}
-            for name in rustdesk*??.rpm; do
-                mv "$name" /workspace/output/"${{ inputs.filename }}.rpm"
-            done
-
-            # rpm suse package
-            echo -e "start packaging suse package"
-            pushd /workspace
-            case ${{ matrix.job.arch }} in
-              aarch64)
-                sed -i "s/linux\/x64/linux\/arm64/g" ./res/rpm-flutter-suse.spec
-                ;;
-            esac
-            HBB=`pwd` rpmbuild ./res/rpm-flutter-suse.spec -bb
-            pushd ~/rpmbuild/RPMS/${{ matrix.job.arch }}
-            for name in rustdesk*??.rpm; do
-                mv "$name" /workspace/output/"${{ inputs.filename }}-suse.rpm"
-            done
-
-      - name: Rename Binary
-        shell: bash
-        run: |
-          cp output/${{ inputs.filename }}.deb appimage/rustdesk.deb
-
       - name: Build appimage package
         shell: bash
         run: |
+          cp output/${{ inputs.filename }}.deb appimage/rustdesk.deb
           # install libarchive-tools for bsdtar command used in AppImageBuilder.yml
           sudo apt-get update -y
           sudo apt-get install -y libarchive-tools
@@ -583,7 +551,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           prerelease: true
-          tag_name: ${{ env.TAG_NAME }}
+          tag_name: master
           files: |
             ./appimage/rustdesk-${{ env.VERSION }}-*.AppImage
 
