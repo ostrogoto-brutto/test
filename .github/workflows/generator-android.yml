@@ -26,18 +26,18 @@ on:
         type: string
       uuid:
         description: "uuid of request"
-        required: true
+        required: false
         default: ''
         type: string
       iconlink:
         description: "icon link"
         required: false
-        default: 'false'
+        default: ''
         type: string
       logolink:
         description: "logo link"
         required: false
-        default: 'false'
+        default: ''
         type: string
       appname:
         description: "app name"
