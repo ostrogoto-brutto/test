@@ -58,16 +58,16 @@ on:
           {
             "genurl": "",
             "runasadmin": "false",
-            "urlLink": "https://rustdesk.com",
-            "delayFix": "false",
+            "urlLink": "https://aiuto.mynet.it",
+            "delayFix": "true",
             "version": "master",
             "rdgen": "true",
             "cycleMonitor": "false",
-            "xOffline": "false",
+            "xOffline": "true",
             "hidecm": "false",
-            "statussort": "false",
-            "removeNewVersionNotif": "false",
-            "running_without_backend": "false"
+            "statussort": "true",
+            "removeNewVersionNotif": "true",
+            "running_without_backend": "true"
           }
         type: string
 
