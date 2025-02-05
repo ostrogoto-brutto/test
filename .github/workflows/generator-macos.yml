@@ -80,7 +80,6 @@ env:
   VCPKG_COMMIT_ID: "b2cb0da531c2f1f740045bfe7c4dac59f0b2b69c"
   VERSION: "${{ fromJson(inputs.extras).version }}"
   STATUS_URL: "${{ secrets.GENURL }}/updategh"
-  # FLUTTER_ELINUX_VERSION: "3.16.9"
 
   MACOS_P12_BASE64: "${{ secrets.MACOS_P12_BASE64 }}"
 
@@ -90,7 +89,7 @@ jobs:
     with:
       version: ${{ fromJson(inputs.extras).version }}
 
-  build-for-macos-flutter:
+  build-rustdesk:
     name: Build macOS
     runs-on: macos-latest
     needs: [generate-bridge]
@@ -115,13 +114,6 @@ jobs:
             }
 
     steps:
-      - name: Export GitHub Actions cache environment variables
-        uses: actions/github-script@v6
-        with:
-          script: |
-            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
-            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
-
       - name: Set rdgen value
         if: ${{ fromJson(inputs.extras).rdgen == 'true' }}
         run: |
@@ -759,7 +751,7 @@ jobs:
           customHeaders: '{"Content-Type": "application/json"}'
           data: '{"uuid": "${{ inputs.uuid }}", "status": "Success"}'
 
-      - name: failed
+      - name: Failed
         if: failure() && fromJson(inputs.extras).running_without_backend != 'true'
         uses: fjogeleit/http-request-action@v1
         with:
@@ -768,7 +760,7 @@ jobs:
           customHeaders: '{"Content-Type": "application/json"}'
           data: '{"uuid": "${{ inputs.uuid }}", "status": "Generation failed, try again"}'
 
-      - name: failed
+      - name: Cancelled
         if: cancelled() && fromJson(inputs.extras).running_without_backend != 'true'
         uses: fjogeleit/http-request-action@v1
         with:
