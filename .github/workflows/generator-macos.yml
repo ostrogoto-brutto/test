@@ -148,6 +148,11 @@ jobs:
           repository: rustdesk/rustdesk
           submodules: recursive
 
+      - name: Checkout source code
+        uses: actions/checkout@v4
+        with:
+          path: rdgen
+
       - name: Restore bridge files
         uses: actions/download-artifact@master
         with:
@@ -408,7 +413,7 @@ jobs:
           fi
 
       - name: Patch stuff
-        uses: ./.github/workflows/functions/patches
+        uses: rdgen/.github/workflows/functions/patches
 
       - name: Report Status
         uses: fjogeleit/http-request-action@v1
