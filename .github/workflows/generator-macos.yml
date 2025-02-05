@@ -49,23 +49,28 @@ on:
         required: true
         default: 'MyNetAssistenzaTecnica'
         type: string
+      # There can be at maximum 10 `inputs` variable
+      # https://docs.github.com/en/actions/managing-workflow-runs-and-deployments/managing-workflow-runs/manually-running-a-workflow#running-a-workflow-using-the-rest-api
       extras:
-        description: "extra inputs in json"
+        description: "JSON for extra inputs"
         required: true
         default: >-
           {
-            "genurl": "",
-            "runasadmin": "false",
             "urlLink": "https://aiuto.mynet.it",
-            "delayFix": "true",
-            "version": "1.3.7",
-            "rdgen": "true",
-            "cycleMonitor": "false",
-            "xOffline": "true",
-            "hidecm": "false",
-            "statussort": "true",
-            "removeNewVersionNotif": "true",
-            "running_without_backend": "true"
+            "downloadLink": "https://aiuto.mynet.it",
+            "version": "master",
+            "rdgen": true,
+            "genurl": "",
+            "runasadmin": false,
+            
+            "delayFix": true,
+            "cycleMonitor": false,
+            "xOffline": true,
+            "hidecm": false,
+            "statussort": true,
+            "removeNewVersionNotif": true,
+            
+            "running_without_backend": true
           }
         type: string
 
@@ -89,7 +94,7 @@ jobs:
     with:
       version: ${{ fromJson(inputs.extras).version }}
 
-  build-rustdesk:
+  build-for-macos-flutter:
     name: Build macOS
     runs-on: macos-latest
     needs: [generate-bridge]
@@ -114,19 +119,26 @@ jobs:
             }
 
     steps:
+      - name: Export GitHub Actions cache environment variables
+        uses: actions/github-script@v6
+        with:
+          script: |
+            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+
       - name: Set rdgen value
-        if: ${{ fromJson(inputs.extras).rdgen == 'true' }}
+        if: ${{ fromJson(inputs.extras).rdgen == true }}
         run: |
           echo "STATUS_URL=${{ secrets.GENURL }}/updategh" >> $env:GITHUB_ENV
 
       - name: Set rdgen value
-        if: ${{ fromJson(inputs.extras).rdgen == 'false' }}
+        if: ${{ fromJson(inputs.extras).rdgen == false }}
         run: |
           echo "STATUS_URL=${{ inputs.apiServer }}/api/updategh" >> $env:GITHUB_ENV
 
       - name: Report Status
         uses: fjogeleit/http-request-action@v1
-        if: fromJson(inputs.extras).running_without_backend != 'true'
+        if: fromJson(inputs.extras).running_without_backend != true
         with:
           url: ${{ env.STATUS_URL }}
           method: "POST"
@@ -147,11 +159,6 @@ jobs:
         with:
           repository: rustdesk/rustdesk
           submodules: recursive
-
-      - name: Checkout source code
-        uses: actions/checkout@v4
-        with:
-          path: rdgen
 
       - name: Restore bridge files
         uses: actions/download-artifact@master
@@ -226,7 +233,7 @@ jobs:
 
       - name: Report Status
         uses: fjogeleit/http-request-action@v1
-        if: fromJson(inputs.extras).running_without_backend != 'true'
+        if: fromJson(inputs.extras).running_without_backend != true
         with:
           url: ${{ env.STATUS_URL }}
           method: "POST"
@@ -267,7 +274,7 @@ jobs:
           prefix-key: ${{ matrix.job.os }}
 
       - name: Magick stuff for macOS
-        if: ${{ inputs.iconlink != 'false' }}
+        if: ${{ inputs.iconlink != '' }}
         continue-on-error: false
         shell: bash
         run: |
@@ -377,7 +384,7 @@ jobs:
           ls -lh rustdesk/data/flutter_assets/assets/
 
       - name: replace flutter icons
-        if: ${{ inputs.iconlink != 'false' }}
+        if: ${{ inputs.iconlink != '' }}
         continue-on-error: false
         shell: bash
         run: |
@@ -401,7 +408,7 @@ jobs:
           cd ..
 
       - name: ui.rs
-        if: ${{ inputs.iconlink != 'false' }}
+        if: ${{ inputs.iconlink != '' }}
         continue-on-error: true
         shell: bash
         run: |
@@ -412,20 +419,51 @@ jobs:
             sed -i '' -e "s~$SEARCH_STR.*\"~$b64\"~" ./src/ui.rs
           fi
 
-      - name: Patch stuff
+      - name: fix connection delay
+        continue-on-error: false
+        if: ${{ fromJson(inputs.extras).delayFix == true }}
+        shell: bash
+        run: |
+          sed -i '' -e '/if !key.is_empty() && !token.is_empty() {/,/}/d' ./src/client.rs
+
+      - name: add cycle monitors to toolbar
         continue-on-error: true
-        uses: ./rdgen/.github/workflows/functions/patches
-        with:
-          delayFix: fromJson(inputs.extras).delayFix
-          cycleMonitor: fromJson(inputs.extras).cycleMonitor
-          xOffline: fromJson(inputs.extras).xOffline
-          hidecm: fromJson(inputs.extras).hidecm
-          statussort: fromJson(inputs.extras).statussort
-          removeNewVersionNotif: fromJson(inputs.extras).removeNewVersionNotif
+        if: fromJson(inputs.extras).cycleMonitor == true
+        run: |
+          wget https://raw.githubusercontent.com/bryangerlach/rdgen/refs/heads/master/.github/patches/cycle_monitor.diff
+          git apply cycle_monitor.diff
+
+      - name: use X for offline display instead of orange circle
+        continue-on-error: true
+        if: fromJson(inputs.extras).xOffline == true
+        run: |
+          wget https://raw.githubusercontent.com/bryangerlach/rdgen/refs/heads/master/.github/patches/xoffline.diff
+          git apply xoffline.diff
+
+      - name: hide-cm
+        continue-on-error: true
+        if: fromJson(inputs.extras).hidecm == true
+        run: |
+          wget https://raw.githubusercontent.com/bryangerlach/rdgen/refs/heads/master/.github/patches/hidecm.diff
+          git apply hidecm.diff
+
+      - name: statussort
+        continue-on-error: true
+        if: fromJson(inputs.extras).statussort == true
+        run: |
+          wget https://raw.githubusercontent.com/bryangerlach/rdgen/refs/heads/master/.github/patches/statussort.diff
+          git apply statussort.diff
+
+      - name: removeNewVersionNotif
+        continue-on-error: true
+        if: fromJson(inputs.extras).removeNewVersionNotif == true
+        run: |
+          wget https://raw.githubusercontent.com/bryangerlach/rdgen/refs/heads/master/.github/patches/removeNewVersionNotif.diff
+          git apply removeNewVersionNotif.diff
 
       - name: Report Status
         uses: fjogeleit/http-request-action@v1
-        if: fromJson(inputs.extras).running_without_backend != 'true'
+        if: fromJson(inputs.extras).running_without_backend != true
         with:
           url: ${{ env.STATUS_URL }}
           method: "POST"
@@ -438,7 +476,7 @@ jobs:
 
       - name: Report Status
         uses: fjogeleit/http-request-action@v1
-        if: fromJson(inputs.extras).running_without_backend != 'true'
+        if: fromJson(inputs.extras).running_without_backend != true
         with:
           url: ${{ env.STATUS_URL }}
           method: "POST"
@@ -468,7 +506,7 @@ jobs:
 
       - name: Report Status
         uses: fjogeleit/http-request-action@v1
-        if: fromJson(inputs.extras).running_without_backend != 'true'
+        if: fromJson(inputs.extras).running_without_backend != true
         with:
           url: ${{ env.STATUS_URL }}
           method: "POST"
@@ -497,7 +535,7 @@ jobs:
 
       - name: Report Status
         uses: fjogeleit/http-request-action@v1
-        if: fromJson(inputs.extras).running_without_backend != 'true'
+        if: fromJson(inputs.extras).running_without_backend != true
         with:
           url: ${{ env.STATUS_URL }}
           method: "POST"
@@ -526,7 +564,7 @@ jobs:
 
       - name: Report Status
         uses: fjogeleit/http-request-action@v1
-        if: fromJson(inputs.extras).running_without_backend != 'true'
+        if: fromJson(inputs.extras).running_without_backend != true
         with:
           url: ${{ env.STATUS_URL }}
           method: "POST"
@@ -544,7 +582,7 @@ jobs:
           rustc -V
 
       - name: icon svg handling
-        if: ${{ inputs.iconlink != 'false' }}
+        if: ${{ inputs.iconlink != '' }}
         continue-on-error: false
         shell: bash
         run: |
@@ -576,7 +614,7 @@ jobs:
 
       - name: Report Status
         uses: fjogeleit/http-request-action@v1
-        if: fromJson(inputs.extras).running_without_backend != 'true'
+        if: fromJson(inputs.extras).running_without_backend != true
         with:
           url: ${{ env.STATUS_URL }}
           method: "POST"
@@ -696,7 +734,7 @@ jobs:
           fi
 
       - name: send file to rdgen server
-        if: ${{ fromJson(inputs.extras).rdgen == 'true' && fromJson(inputs.extras).running_without_backend != 'true' }}
+        if: ${{ fromJson(inputs.extras).rdgen == 'true' && fromJson(inputs.extras).running_without_backend != true }}
         shell: bash
         run: |
           curl -i -X POST \
@@ -707,7 +745,7 @@ jobs:
             "${{ secrets.GENURL }}/save_custom_client"
 
       - name: send file to api server
-        if: ${{ fromJson(inputs.extras).rdgen == 'false' && fromJson(inputs.extras).running_without_backend != 'true' }}
+        if: ${{ fromJson(inputs.extras).rdgen == 'false' && fromJson(inputs.extras).running_without_backend != true }}
         shell: bash
         run: |
           curl -i -X POST \
@@ -718,15 +756,15 @@ jobs:
 
       - name: Report Status
         uses: fjogeleit/http-request-action@v1
-        if: fromJson(inputs.extras).running_without_backend != 'true'
+        if: fromJson(inputs.extras).running_without_backend != true
         with:
           url: ${{ env.STATUS_URL }}
           method: "POST"
           customHeaders: '{"Content-Type": "application/json"}'
           data: '{"uuid": "${{ inputs.uuid }}", "status": "Success"}'
 
-      - name: Failed
-        if: failure() && fromJson(inputs.extras).running_without_backend != 'true'
+      - name: failed
+        if: failure() && fromJson(inputs.extras).running_without_backend != true
         uses: fjogeleit/http-request-action@v1
         with:
           url: ${{ env.STATUS_URL }}
@@ -734,8 +772,8 @@ jobs:
           customHeaders: '{"Content-Type": "application/json"}'
           data: '{"uuid": "${{ inputs.uuid }}", "status": "Generation failed, try again"}'
 
-      - name: Cancelled
-        if: cancelled() && fromJson(inputs.extras).running_without_backend != 'true'
+      - name: failed
+        if: cancelled() && fromJson(inputs.extras).running_without_backend != true
         uses: fjogeleit/http-request-action@v1
         with:
           url: ${{ env.STATUS_URL }}
