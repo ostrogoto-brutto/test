@@ -408,7 +408,7 @@ jobs:
           fi
 
       - name: Patch stuff
-        uses: ./.github/workflows/patches
+        uses: ./.github/workflows/functions/patches
 
       - name: Report Status
         uses: fjogeleit/http-request-action@v1
