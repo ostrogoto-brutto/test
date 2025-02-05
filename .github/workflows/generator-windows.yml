@@ -1,4 +1,4 @@
-name: Custom Windows Client Generator2
+name: Custom Windows Client Generator
 run-name: Custom Windows Client Generator
 
 on:
@@ -56,21 +56,18 @@ on:
         required: true
         default: >-
           {
-            "urlLink": "https://aiuto.mynet.it",
-            "downloadLink": "https://aiuto.mynet.it",
-            "version": "master",
-            "rdgen": true,
             "genurl": "",
-            "runasadmin": false,
-            
-            "delayFix": true,
-            "cycleMonitor": false,
-            "xOffline": true,
-            "hidecm": false,
-            "statussort": true,
-            "removeNewVersionNotif": true,
-            
-            "running_without_backend": true
+            "runasadmin": "false",
+            "urlLink": "https://rustdesk.com",
+            "delayFix": "false",
+            "version": "master",
+            "rdgen": "true",
+            "cycleMonitor": "false",
+            "xOffline": "false",
+            "hidecm": "false",
+            "statussort": "false",
+            "removeNewVersionNotif": "false",
+            "running_without_backend": "false"
           }
         type: string
 
@@ -132,18 +129,18 @@ jobs:
             core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
 
       - name: Set rdgen value
-        if: ${{ fromJson(inputs.extras).rdgen == true }}
+        if: ${{ fromJson(inputs.extras).rdgen == 'true' }}
         run: |
           echo "STATUS_URL=${{ secrets.GENURL }}/updategh" >> $env:GITHUB_ENV
 
       - name: Set rdgen value
-        if: ${{ fromJson(inputs.extras).rdgen == false }}
+        if: ${{ fromJson(inputs.extras).rdgen == 'false' }}
         run: |
           echo "STATUS_URL=${{ inputs.apiServer }}/api/updategh" >> $env:GITHUB_ENV
 
       - name: Report Status
         uses: fjogeleit/http-request-action@v1
-        if: fromJson(inputs.extras).running_without_backend != true
+        if: fromJson(inputs.extras).running_without_backend != 'true'
         with:
           url: ${{ env.STATUS_URL }}
           method: "POST"
@@ -241,7 +238,7 @@ jobs:
 
       - name: Report Status
         uses: fjogeleit/http-request-action@v1
-        if: fromJson(inputs.extras).running_without_backend != true
+        if: fromJson(inputs.extras).running_without_backend != 'true'
         with:
           url: ${{ env.STATUS_URL }}
           method: "POST"
@@ -280,7 +277,7 @@ jobs:
 
       - name: Report Status
         uses: fjogeleit/http-request-action@v1
-        if: fromJson(inputs.extras).running_without_backend != true
+        if: fromJson(inputs.extras).running_without_backend != 'true'
         with:
           url: ${{ env.STATUS_URL }}
           method: "POST"
@@ -293,7 +290,7 @@ jobs:
 
       - name: Report Status
         uses: fjogeleit/http-request-action@v1
-        if: fromJson(inputs.extras).running_without_backend != true
+        if: fromJson(inputs.extras).running_without_backend != 'true'
         with:
           url: ${{ env.STATUS_URL }}
           method: "POST"
@@ -365,49 +362,49 @@ jobs:
 
       - name: fix connection delay
         continue-on-error: true
-        if: ${{ fromJson(inputs.extras).delayFix == true }}
+        if: ${{ fromJson(inputs.extras).delayFix == 'true' }}
         shell: bash
         run: |
           sed -i -e '/if !key.is_empty() && !token.is_empty() {/,/}/d' ./src/client.rs
 
       - name: add cycle monitors to toolbar
         continue-on-error: true
-        if: fromJson(inputs.extras).cycleMonitor == true
+        if: fromJson(inputs.extras).cycleMonitor == 'true'
         run: |
           Invoke-WebRequest -Uri https://raw.githubusercontent.com/bryangerlach/rdgen/refs/heads/master/.github/patches/cycle_monitor.diff -OutFile cycle_monitor.diff
           git apply cycle_monitor.diff
 
       - name: use X for offline display instead of orange circle
         continue-on-error: true
-        if: fromJson(inputs.extras).xOffline == true
+        if: fromJson(inputs.extras).xOffline == 'true'
         run: |
           Invoke-WebRequest -Uri https://raw.githubusercontent.com/bryangerlach/rdgen/refs/heads/master/.github/patches/xoffline.diff -OutFile xoffline.diff
           git apply xoffline.diff
 
       - name: hide-cm
         continue-on-error: true
-        if: fromJson(inputs.extras).hidecm == true
+        if: fromJson(inputs.extras).hidecm == 'true'
         run: |
           Invoke-WebRequest -Uri https://raw.githubusercontent.com/bryangerlach/rdgen/refs/heads/master/.github/patches/hidecm.diff -OutFile hidecm.diff
           git apply hidecm.diff
 
       - name: statussort
         continue-on-error: true
-        if: fromJson(inputs.extras).statussort == true
+        if: fromJson(inputs.extras).statussort == 'true'
         run: |
           Invoke-WebRequest -Uri https://raw.githubusercontent.com/bryangerlach/rdgen/refs/heads/master/.github/patches/statussort.diff -OutFile statussort.diff
           git apply statussort.diff
 
       - name: removeNewVersionNotif
         continue-on-error: true
-        if: fromJson(inputs.extras).removeNewVersionNotif == true
+        if: fromJson(inputs.extras).removeNewVersionNotif == 'true'
         run: |
           Invoke-WebRequest -Uri https://raw.githubusercontent.com/bryangerlach/rdgen/refs/heads/master/.github/patches/removeNewVersionNotif.diff -Outfile removeNewVersionNotif.diff
           git apply removeNewVersionNotif.diff
 
       - name: run as admin
         continue-on-error: true
-        if: ${{ fromJson(inputs.extras).runasadmin == true }}
+        if: ${{ fromJson(inputs.extras).runasadmin == 'true' }}
         shell: bash
         run: |
           echo "SET_TARGET_PROPERTIES(\${BINARY_NAME} PROPERTIES LINK_FLAGS    \"/MANIFESTUAC:\\\"level='requireAdministrator' uiAccess='false'\\\" /SUBSYSTEM:WINDOWS\")" >> ./flutter/windows/runner/CMakeLists.txt
@@ -415,7 +412,7 @@ jobs:
 
       - name: Report Status
         uses: fjogeleit/http-request-action@v1
-        if: fromJson(inputs.extras).running_without_backend != true
+        if: fromJson(inputs.extras).running_without_backend != 'true'
         with:
           url: ${{ env.STATUS_URL }}
           method: "POST"
@@ -434,7 +431,7 @@ jobs:
 
       - name: Report Status
         uses: fjogeleit/http-request-action@v1
-        if: fromJson(inputs.extras).running_without_backend != true
+        if: fromJson(inputs.extras).running_without_backend != 'true'
         with:
           url: ${{ env.STATUS_URL }}
           method: "POST"
@@ -503,7 +500,7 @@ jobs:
 
       - name: Report Status
         uses: fjogeleit/http-request-action@v1
-        if: fromJson(inputs.extras).running_without_backend != true
+        if: fromJson(inputs.extras).running_without_backend != 'true'
         with:
           url: ${{ env.STATUS_URL }}
           method: "POST"
@@ -574,7 +571,7 @@ jobs:
 
       - name: Report Status
         uses: fjogeleit/http-request-action@v1
-        if: fromJson(inputs.extras).running_without_backend != true
+        if: fromJson(inputs.extras).running_without_backend != 'true'
         with:
           url: ${{ env.STATUS_URL }}
           method: "POST"
@@ -623,14 +620,14 @@ jobs:
           mv ./SignOutput/rustdesk.msi "./SignOutput/${{ inputs.filename }}.msi" || echo "rustdesk"
 
       - name: send file to rdgen server
-        if: ${{ fromJson(inputs.extras).rdgen == 'true' && fromJson(inputs.extras).running_without_backend != true }}
+        if: ${{ fromJson(inputs.extras).rdgen == 'true' && fromJson(inputs.extras).running_without_backend != 'true' }}
         shell: bash
         run: |
           curl -i -X POST -H "Content-Type: multipart/form-data" -H "Authorization: Bearer ${{ fromJson(inputs.extras).token }}" -F "file=@./SignOutput/${{ inputs.filename }}.exe" -F "uuid=${{ inputs.uuid }}" ${{ secrets.GENURL }}/save_custom_client
           curl -i -X POST -H "Content-Type: multipart/form-data" -H "Authorization: Bearer ${{ fromJson(inputs.extras).token }}" -F "file=@./SignOutput/${{ inputs.filename }}.msi" -F "uuid=${{ inputs.uuid }}" ${{ secrets.GENURL }}/save_custom_client || true
 
       - name: send file to api server
-        if: ${{ fromJson(inputs.extras).rdgen == 'false' && fromJson(inputs.extras).running_without_backend != true }}
+        if: ${{ fromJson(inputs.extras).rdgen == 'false' && fromJson(inputs.extras).running_without_backend != 'true' }}
         shell: bash
         run: |
           curl -i -X POST -H "Content-Type: multipart/form-data" -H "Authorization: Bearer ${{ fromJson(inputs.extras).token }}" -F "file=@./SignOutput/${{ inputs.filename }}.exe" ${{ inputs.apiServer }}/api/save_custom_client
@@ -638,7 +635,7 @@ jobs:
 
       - name: Report Status
         uses: fjogeleit/http-request-action@v1
-        if: fromJson(inputs.extras).running_without_backend != true
+        if: fromJson(inputs.extras).running_without_backend != 'true'
         with:
           url: ${{ env.STATUS_URL }}
           method: "POST"
@@ -646,7 +643,7 @@ jobs:
           data: '{"uuid": "${{ inputs.uuid }}", "status": "Success"}'
 
       - name: failed
-        if: failure() && fromJson(inputs.extras).running_without_backend != true
+        if: failure() && fromJson(inputs.extras).running_without_backend != 'true'
         uses: fjogeleit/http-request-action@v1
         with:
           url: ${{ env.STATUS_URL }}
@@ -655,7 +652,7 @@ jobs:
           data: '{"uuid": "${{ inputs.uuid }}", "status": "Generation failed, try again"}'
 
       - name: failed
-        if: cancelled() && fromJson(inputs.extras).running_without_backend != true
+        if: cancelled() && fromJson(inputs.extras).running_without_backend != 'true'
         uses: fjogeleit/http-request-action@v1
         with:
           url: ${{ env.STATUS_URL }}
