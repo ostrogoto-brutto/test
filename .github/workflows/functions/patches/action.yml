@@ -5,14 +5,12 @@ runs:
   using: "composite"
   steps:
     - name: fix connection delay
-      continue-on-error: true
       if: ${{ fromJson(inputs.extras).delayFix == 'true' }}
       shell: bash
       run: |
         sed -i -e '/if !key.is_empty() && !token.is_empty() {/,/}/d' ./src/client.rs
 
     - name: add cycle monitors to toolbar
-      continue-on-error: true
       if: fromJson(inputs.extras).cycleMonitor == 'true'
       shell: bash
       run: |
@@ -20,7 +18,6 @@ runs:
         git apply cycle_monitor.diff
 
     - name: use X for offline display instead of orange circle
-      continue-on-error: true
       if: fromJson(inputs.extras).xOffline == 'true'
       shell: bash
       run: |
@@ -28,7 +25,6 @@ runs:
         git apply xoffline.diff
 
     - name: hide-cm
-      continue-on-error: true
       if: fromJson(inputs.extras).hidecm == 'true'
       shell: bash
       run: |
@@ -36,7 +32,6 @@ runs:
         git apply hidecm.diff
 
     - name: statussort
-      continue-on-error: true
       if: fromJson(inputs.extras).statussort == 'true'
       shell: bash
       run: |
@@ -44,7 +39,6 @@ runs:
         git apply statussort.diff
 
     - name: removeNewVersionNotif
-      continue-on-error: true
       if: fromJson(inputs.extras).removeNewVersionNotif == 'true'
       shell: bash
       run: |

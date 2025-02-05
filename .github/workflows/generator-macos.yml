@@ -413,6 +413,7 @@ jobs:
           fi
 
       - name: Patch stuff
+        continue-on-error: true
         uses: ./rdgen/.github/workflows/functions/patches
 
       - name: Report Status
