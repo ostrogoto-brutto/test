@@ -413,7 +413,7 @@ jobs:
           fi
 
       - name: Patch stuff
-        uses: rdgen/.github/workflows/functions/patches
+        uses: ./rdgen/.github/workflows/functions/patches
 
       - name: Report Status
         uses: fjogeleit/http-request-action@v1
