@@ -1,4 +1,4 @@
-name: 'Patches'
+name: Apply patches
 
 inputs:
   delayFix:
@@ -29,43 +29,32 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: fix connection delay
+    - name: Fix connection delay
       if: inputs.delayFix
       shell: bash
-      run: |
-        sed -i -e '/if !key.is_empty() && !token.is_empty() {/,/}/d' ./src/client.rs
+      run: sed -i -e '/if !key.is_empty() && !token.is_empty() {/,/}/d' ./src/client.rs
 
-    - name: add cycle monitors to toolbar
+    - name: Apply add cycle monitors to toolbar
       if: inputs.cycleMonitor
       shell: bash
-      run: |
-        wget https://raw.githubusercontent.com/bryangerlach/rdgen/refs/heads/master/.github/patches/cycle_monitor.diff
-        git apply cycle_monitor.diff
+      run: git apply .github/patches/cycle_monitor.diff
 
-    - name: use X for offline display instead of orange circle
+    - name: Apply use X for offline display instead of orange circle
       if: inputs.xOffline
       shell: bash
-      run: |
-        wget https://raw.githubusercontent.com/bryangerlach/rdgen/refs/heads/master/.github/patches/xoffline.diff
-        git apply xoffline.diff
+      run: git apply .github/patches/xoffline.diff
 
-    - name: hide-cm
+    - name: Apply hide-cm
       if: inputs.hidecm
       shell: bash
-      run: |
-        wget https://raw.githubusercontent.com/bryangerlach/rdgen/refs/heads/master/.github/patches/hidecm.diff
-        git apply hidecm.diff
+      run: git apply .github/patches/hidecm.diff
 
-    - name: statussort
+    - name: Apply statussort
       if: inputs.statussort
       shell: bash
-      run: |
-        wget https://raw.githubusercontent.com/bryangerlach/rdgen/refs/heads/master/.github/patches/statussort.diff
-        git apply statussort.diff
+      run: git apply .github/patches/statussort.diff
 
-    - name: removeNewVersionNotif
+    - name: Apply removeNewVersionNotif
       if: inputs.removeNewVersionNotif
       shell: bash
-      run: |
-        wget https://raw.githubusercontent.com/bryangerlach/rdgen/refs/heads/master/.github/patches/removeNewVersionNotif.diff
-        git apply removeNewVersionNotif.diff
+      run: git apply .github/patches/removeNewVersionNotif.diff
