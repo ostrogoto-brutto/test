@@ -1,45 +1,70 @@
-name: 'Hello World'
-description: 'Greet someone'
+name: 'Patches'
+
+inputs:
+  delayFix:
+    description: ''
+    required: true
+    default: false
+  cycleMonitor:
+    description: ''
+    required: true
+    default: false
+  xOffline:
+    description: ''
+    required: true
+    default: false
+  hidecm:
+    description: ''
+    required: true
+    default: false
+  statussort:
+    description: ''
+    required: true
+    default: false
+  removeNewVersionNotif:
+    description: ''
+    required: true
+    default: false
 
 runs:
   using: "composite"
   steps:
     - name: fix connection delay
-      if: ${{ fromJson(inputs.extras).delayFix == 'true' }}
+      if: inputs.delayFix
       shell: bash
       run: |
         sed -i -e '/if !key.is_empty() && !token.is_empty() {/,/}/d' ./src/client.rs
 
     - name: add cycle monitors to toolbar
-      if: fromJson(inputs.extras).cycleMonitor == 'true'
+      if: inputs.cycleMonitor
       shell: bash
       run: |
         wget https://raw.githubusercontent.com/bryangerlach/rdgen/refs/heads/master/.github/patches/cycle_monitor.diff
         git apply cycle_monitor.diff
 
     - name: use X for offline display instead of orange circle
-      if: fromJson(inputs.extras).xOffline == 'true'
+      if: inputs.xOffline
       shell: bash
       run: |
         wget https://raw.githubusercontent.com/bryangerlach/rdgen/refs/heads/master/.github/patches/xoffline.diff
         git apply xoffline.diff
 
     - name: hide-cm
-      if: fromJson(inputs.extras).hidecm == 'true'
+      if: inputs.hidecm
       shell: bash
       run: |
         wget https://raw.githubusercontent.com/bryangerlach/rdgen/refs/heads/master/.github/patches/hidecm.diff
         git apply hidecm.diff
 
     - name: statussort
-      if: fromJson(inputs.extras).statussort == 'true'
+      if: inputs.statussort
       shell: bash
       run: |
         wget https://raw.githubusercontent.com/bryangerlach/rdgen/refs/heads/master/.github/patches/statussort.diff
         git apply statussort.diff
 
     - name: removeNewVersionNotif
-      if: fromJson(inputs.extras).removeNewVersionNotif == 'true'
+      if: inputs.removeNewVersionNotif
       shell: bash
       run: |
         wget https://raw.githubusercontent.com/bryangerlach/rdgen/refs/heads/master/.github/patches/removeNewVersionNotif.diff

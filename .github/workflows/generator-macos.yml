@@ -415,6 +415,13 @@ jobs:
       - name: Patch stuff
         continue-on-error: true
         uses: ./rdgen/.github/workflows/functions/patches
+        with:
+          delayFix: fromJson(inputs.extras).delayFix
+          cycleMonitor: fromJson(inputs.extras).cycleMonitor
+          xOffline: fromJson(inputs.extras).xOffline
+          hidecm: fromJson(inputs.extras).hidecm
+          statussort: fromJson(inputs.extras).statussort
+          removeNewVersionNotif: fromJson(inputs.extras).removeNewVersionNotif
 
       - name: Report Status
         uses: fjogeleit/http-request-action@v1
