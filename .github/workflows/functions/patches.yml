@@ -1,4 +1,5 @@
 name: 'Hello World'
+description: 'Greet someone'
 
 runs:
   using: "composite"
