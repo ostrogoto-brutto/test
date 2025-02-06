@@ -1,0 +1,57 @@
+name: Initialize workflows
+
+inputs:
+  rdgen:
+    description: ''
+    required: true
+    default: "true"
+
+outputs:
+  env-vars:
+    description: "env-vars"
+    value: ${{ steps.status-url.outputs.env-vars }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set rdgen value
+      if: ${{ inputs.rdgen == 'true' }}
+      run: echo "STATUS_URL=${{ secrets.GENURL }}/updategh" >> env-vars
+
+    - name: Set rdgen value
+      if: ${{ inputs.rdgen == 'false' }}
+      run: echo "STATUS_URL=${{ inputs.apiServer }}/api/updategh" >> env-vars
+
+    - name: Checkout RustDesk source code (tag)
+      if: ${{ env.VERSION != 'master' }}
+      uses: actions/checkout@v4
+      with:
+        repository: rustdesk/rustdesk
+        ref: refs/tags/${{ env.VERSION }}
+        submodules: recursive
+
+    - name: Checkout RustDesk source code (master)
+      if: ${{ env.VERSION == 'master' }}
+      uses: actions/checkout@v4
+      with:
+        repository: rustdesk/rustdesk
+        submodules: recursive
+
+    - name: Checkout self
+      uses: actions/checkout@v4
+      with:
+        path: rdgen
+
+    - name: Restore bridge files
+      uses: actions/download-artifact@master
+      with:
+        name: bridge-artifact
+        path: ./
+
+    # https://superuser.com/a/1658619
+    # https://stackoverflow.com/a/947464
+    - name: Export env vars
+      if: ${{ inputs.rdgen == 'false' }}
+      run: |
+        echo -n "env-vars=\"$( cat env-vars )\"" | sed '$ ! s/$/\\n/g' | tr -d '\n' >> $GITHUB_OUTPUT
+        rm env-vars

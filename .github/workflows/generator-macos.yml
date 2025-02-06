@@ -123,50 +123,20 @@ jobs:
             core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
             core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
 
-      - name: Set rdgen value
-        if: ${{ fromJson(inputs.extras).rdgen == 'true' }}
-        run: |
-          echo "STATUS_URL=${{ secrets.GENURL }}/updategh" >> $env:GITHUB_ENV
-
-      - name: Set rdgen value
-        if: ${{ fromJson(inputs.extras).rdgen == 'false' }}
-        run: |
-          echo "STATUS_URL=${{ inputs.apiServer }}/api/updategh" >> $env:GITHUB_ENV
-
-      - name: Report Status
-        uses: fjogeleit/http-request-action@v1
-        if: fromJson(inputs.extras).running_without_backend != 'true'
-        with:
-          url: ${{ env.STATUS_URL }}
-          method: "POST"
-          customHeaders: '{"Content-Type": "application/json"}'
-          data: '{"uuid": "${{ inputs.uuid }}", "status": "5% complete"}'
-
-      - name: Checkout RustDesk source code (tag)
-        if: ${{ env.VERSION != 'master' }}
-        uses: actions/checkout@v4
-        with:
-          repository: rustdesk/rustdesk
-          ref: refs/tags/${{ env.VERSION }}
-          submodules: recursive
-
-      - name: Checkout RustDesk source code (master)
-        if: ${{ env.VERSION == 'master' }}
-        uses: actions/checkout@v4
-        with:
-          repository: rustdesk/rustdesk
-          submodules: recursive
-
+      # Init
       - name: Checkout source code
         uses: actions/checkout@v4
         with:
           path: rdgen
-
-      - name: Restore bridge files
-        uses: actions/download-artifact@master
+      - name: Init
+        id: init
+        uses: ./rdgen/.github/workflows/snippets/initialization
         with:
-          name: bridge-artifact
-          path: ./
+          rdgen: ${{ fromJson(inputs.extras).rdgen }}
+      - name: DEBUGGGG
+        run: echo -e "${{ steps.init.outputs.env-vars }}"
+      - name: Set env vars
+        run: echo -e "${{ steps.init.outputs.env-vars }}" >> $GITHUB_ENV
 
       - name: Install imagemagick and potrace and nasm and and
         shell: bash
@@ -423,7 +393,7 @@ jobs:
 
       - name: Apply patches
         continue-on-error: true
-        uses: ./rdgen/.github/workflows/functions/patches
+        uses: ./rdgen/.github/workflows/snippets/patches
         with:
           delayFix: ${{ fromJson(inputs.extras).delayFix }}
           cycleMonitor: ${{ fromJson(inputs.extras).cycleMonitor }}
