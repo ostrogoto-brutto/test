@@ -133,6 +133,8 @@ jobs:
         uses: ./rdgen/.github/workflows/snippets/initialization
         with:
           rdgen: ${{ fromJson(inputs.extras).rdgen }}
+          genurl: ${{ secrets.GENURL }}
+          apiServer: ${{ inputs.apiServer }}
       - name: DEBUGGGG
         run: echo -e "${{ steps.init.outputs.env-vars }}"
       - name: Set env vars

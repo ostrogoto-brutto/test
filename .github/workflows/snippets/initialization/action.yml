@@ -5,6 +5,12 @@ inputs:
     description: ''
     required: true
     default: "true"
+  genurl:
+    description: ''
+    required: true
+  apiServer:
+    description: ''
+    required: true
 
 outputs:
   env-vars:
@@ -16,10 +22,12 @@ runs:
   steps:
     - name: Set rdgen value
       if: ${{ inputs.rdgen == 'true' }}
-      run: echo "STATUS_URL=${{ secrets.GENURL }}/updategh" >> env-vars
+      shell: bash
+      run: echo "STATUS_URL=${{ inputs.genurl }}/updategh" >> env-vars
 
     - name: Set rdgen value
       if: ${{ inputs.rdgen == 'false' }}
+      shell: bash
       run: echo "STATUS_URL=${{ inputs.apiServer }}/api/updategh" >> env-vars
 
     - name: Checkout RustDesk source code (tag)
@@ -51,7 +59,7 @@ runs:
     # https://superuser.com/a/1658619
     # https://stackoverflow.com/a/947464
     - name: Export env vars
-      if: ${{ inputs.rdgen == 'false' }}
+      shell: bash
       run: |
         echo -n "env-vars=\"$( cat env-vars )\"" | sed '$ ! s/$/\\n/g' | tr -d '\n' >> $GITHUB_OUTPUT
         rm env-vars
