@@ -69,4 +69,4 @@ runs:
       shell: bash
       run: |
         echo "Running removeNewVersionNotif"
-        git apply --verbose rdgen/.github/patches/remove_new_version_notification.diff
+        git apply --verbose rdgen/.github/patches/remove_new_version_notification.patch
