@@ -137,6 +137,7 @@ jobs:
           genurl: ${{ secrets.GENURL }}
           apiServer: ${{ inputs.apiServer }}
       - name: Set env vars
+        shell: bash
         run: echo -e "${{ steps.init.outputs.env-vars }}" >> $GITHUB_ENV
 
       - name: Set Swap Space
