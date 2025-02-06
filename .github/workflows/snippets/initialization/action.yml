@@ -20,16 +20,6 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - name: Set rdgen value
-      if: ${{ inputs.rdgen == 'true' }}
-      shell: bash
-      run: echo "STATUS_URL=${{ inputs.genurl }}/updategh" >> env-vars
-
-    - name: Set rdgen value
-      if: ${{ inputs.rdgen == 'false' }}
-      shell: bash
-      run: echo "STATUS_URL=${{ inputs.apiServer }}/api/updategh" >> env-vars
-
     - name: Checkout RustDesk source code (tag)
       if: ${{ env.VERSION != 'master' }}
       uses: actions/checkout@v4
@@ -49,6 +39,16 @@ runs:
       uses: actions/checkout@v4
       with:
         path: rdgen
+
+    - name: Set rdgen value
+      if: ${{ inputs.rdgen == 'true' }}
+      shell: bash
+      run: echo "STATUS_URL=${{ inputs.genurl }}/updategh" >> env-vars
+
+    - name: Set rdgen value
+      if: ${{ inputs.rdgen == 'false' }}
+      shell: bash
+      run: echo "STATUS_URL=${{ inputs.apiServer }}/api/updategh" >> env-vars
 
     - name: Restore bridge files
       uses: actions/download-artifact@master
