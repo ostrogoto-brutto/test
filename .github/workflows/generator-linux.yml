@@ -115,32 +115,6 @@ jobs:
           #     vcpkg-triplet: arm64-linux,
           #   }
     steps:
-      - name: Export GitHub Actions cache environment variables
-        uses: actions/github-script@v6
-        with:
-          script: |
-            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
-            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
-
-      - name: Set rdgen value
-        if: ${{ fromJson(inputs.extras).rdgen == 'true' }}
-        run: |
-          echo "STATUS_URL=${{ secrets.GENURL }}/updategh" >> $GITHUB_ENV
-
-      - name: Set rdgen value
-        if: ${{ fromJson(inputs.extras).rdgen == 'false' }}
-        run: |
-          echo "STATUS_URL=${{ inputs.apiServer }}/api/updategh" >> $GITHUB_ENV
-
-      - name: Report Status
-        uses: fjogeleit/http-request-action@v1
-        if: fromJson(inputs.extras).running_without_backend != 'true'
-        with:
-          url: ${{ env.STATUS_URL }}
-          method: "POST"
-          customHeaders: '{"Content-Type": "application/json"}'
-          data: '{"uuid": "${{ inputs.uuid }}", "status": "5% complete"}'
-
       - name: Maximize build space
         if: ${{ matrix.job.arch == 'x86_64' }}
         run: |
@@ -150,30 +124,20 @@ jobs:
           sudo apt-get update -y
           sudo apt-get install -y nasm qemu-user-static
 
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y imagemagick
-
-      - name: Checkout RustDesk source code (tag)
-        if: ${{ env.VERSION != 'master' }}
-        uses: actions/checkout@v4
-        with:
-          repository: rustdesk/rustdesk
-          ref: refs/tags/${{ env.VERSION }}
-          submodules: recursive
-
-      - name: Checkout RustDesk source code (master)
-        if: ${{ env.VERSION == 'master' }}
-        uses: actions/checkout@v4
-        with:
-          repository: rustdesk/rustdesk
-          submodules: recursive
-
+      # Init
       - name: Checkout source code
         uses: actions/checkout@v4
         with:
           path: rdgen
+      - name: Init
+        id: init
+        uses: ./rdgen/.github/workflows/snippets/initialization
+        with:
+          rdgen: ${{ fromJson(inputs.extras).rdgen }}
+          genurl: ${{ secrets.GENURL }}
+          apiServer: ${{ inputs.apiServer }}
+      - name: Set env vars
+        run: echo -e "${{ steps.init.outputs.env-vars }}" >> $GITHUB_ENV
 
       - name: Set Swap Space
         if: ${{ matrix.job.arch == 'x86_64' }}
@@ -212,13 +176,6 @@ jobs:
           method: "POST"
           customHeaders: '{"Content-Type": "application/json"}'
           data: '{"uuid": "${{ inputs.uuid }}", "status": "15% complete"}'
-
-      - name: Restore bridge files
-        if: matrix.job.arch == 'x86_64' || env.UPLOAD_ARTIFACT == 'true'
-        uses: actions/download-artifact@master
-        with:
-          name: bridge-artifact
-          path: ./
 
       - name: Setup vcpkg with Github Actions binary cache
         if: matrix.job.arch == 'x86_64' || env.UPLOAD_ARTIFACT == 'true'

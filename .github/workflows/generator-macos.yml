@@ -116,13 +116,6 @@ jobs:
             }
 
     steps:
-      - name: Export GitHub Actions cache environment variables
-        uses: actions/github-script@v6
-        with:
-          script: |
-            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
-            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
-
       # Init
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -135,8 +128,6 @@ jobs:
           rdgen: ${{ fromJson(inputs.extras).rdgen }}
           genurl: ${{ secrets.GENURL }}
           apiServer: ${{ inputs.apiServer }}
-      - name: DEBUGGGG
-        run: echo -e "${{ steps.init.outputs.env-vars }}"
       - name: Set env vars
         run: echo -e "${{ steps.init.outputs.env-vars }}" >> $GITHUB_ENV
 

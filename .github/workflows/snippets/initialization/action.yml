@@ -55,6 +55,12 @@ runs:
       with:
         name: bridge-artifact
         path: ./
+        
+    - name: Export GitHub Actions cache environment variables
+      shell: bash
+      run: |
+        echo "ACTIONS_CACHE_URL=${{ process.env.ACTIONS_CACHE_URL }}" >> env-vars
+        echo "ACTIONS_RUNTIME_TOKEN=${{ process.env.ACTIONS_RUNTIME_TOKEN }}" >> env-vars
 
     # https://superuser.com/a/1658619
     # https://stackoverflow.com/a/947464
