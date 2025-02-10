@@ -587,8 +587,8 @@ jobs:
           prerelease: true
           tag_name: ${{ env.VERSION }}
           files: |
-            ./SignOutput/rustdesk-*.msi
-            ./SignOutput/rustdesk-*.exe
+            ./SignOutput/*.msi
+            ./SignOutput/*.exe
 
       - name: Report Status
         uses: fjogeleit/http-request-action@v1
@@ -616,4 +616,3 @@ jobs:
           method: "POST"
           customHeaders: '{"Content-Type": "application/json"}'
           data: '{"uuid": "${{ inputs.uuid }}", "status": "Generation cancelled, try again"}'
-
