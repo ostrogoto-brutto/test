@@ -518,6 +518,10 @@ jobs:
           pushd appimage
           sudo appimage-builder --skip-tests --recipe ./AppImageBuilder-${{ matrix.job.arch }}.yml
 
+      - name: find
+        shell: bash
+        run: find . -name "*.AppImage"
+
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
