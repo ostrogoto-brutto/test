@@ -518,7 +518,7 @@ jobs:
           pushd appimage
           sudo appimage-builder --skip-tests --recipe ./AppImageBuilder-${{ matrix.job.arch }}.yml
           popd
-          mv ./appimage/*.AppImage ./appimage/${{ inputs.filename }}.AppImage
+          cp ./appimage/*.AppImage ./output/${{ inputs.filename }}.AppImage
 
       - name: Release
         uses: softprops/action-gh-release@v1
@@ -526,5 +526,5 @@ jobs:
           tag_name: ${{ env.VERSION }}
           files:
             ./output/${{ inputs.filename }}.deb
-            ./appimage/${{ inputs.filename }}.AppImage
+            ./output/${{ inputs.filename }}.AppImage
 
