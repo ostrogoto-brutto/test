@@ -524,7 +524,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ env.VERSION }}
-          files:
+          files: |
             ./output/${{ inputs.filename }}.deb
             ./output/${{ inputs.filename }}.AppImage
 
