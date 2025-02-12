@@ -51,17 +51,18 @@ on:
         required: true
         default: >-
           {
+            "version": "1.3.7",
+            "urlLink": "https://aiuto.mynet.it",
+            "downloadLink": "https://aiuto.mynet.it",
+
             "runasadmin": "false",
-            "urlLink": "https://rustdesk.com",
-            "downloadLink": "https://rustdesk.com/download",
             "delayFix": "true",
-            "version": "master",
 
             "cycleMonitor": "false",
-            "xOffline": "false",
+            "xOffline": "true",
             "hidecm": "false",
-            "statussort": "false",
-            "removeNewVersionNotif": "false"
+            "statussort": "true",
+            "removeNewVersionNotif": "true"
           }
         type: string
 
