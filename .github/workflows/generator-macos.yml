@@ -96,9 +96,9 @@ jobs:
       version: ${{ fromJson(inputs.extras).version }}
 
   build-for-macos-flutter:
-    name: Build macOS
-    runs-on: macos-latest
     needs: [generate-bridge]
+    name: Build macOS ${{ matrix.job.os }}
+    runs-on: ${{ matrix.job.os }}
     strategy:
       fail-fast: false
       matrix:
