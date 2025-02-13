@@ -502,7 +502,7 @@ jobs:
             FILES=$(sed -ne "s~.*cp\s\(../\)\?\+\(.\+\.\(desktop\|service\)\)\s\+tmpdeb/.*~\2~p" build.py | sort | uniq)
             FILES=$(echo -e "$FILES\n$(ls --color=never res/DEBIAN/*)")                                                 
             for FILE in $(echo $FILES | sed "s/\n/ /g"); do
-              sed -e "s|rustdesk|${{ inputs.filename }}|g" $FILE
+              sed -ie "s|rustdesk|${{ inputs.filename }}|g" $FILE
             done
             
             python3 ./build.py --flutter --skip-cargo
